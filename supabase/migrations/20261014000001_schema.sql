@@ -101,7 +101,7 @@ language sql stable set search_path = public as $$
   select r.* from public.recipes r
   where r.status = 'published'
     and (coalesce(q, '') = ''
-         or r.search_text like '%' || replace(replace(replace(lower(q), '\', '\'), '%', '\%'), '_', '\_') || '%')
+         or r.search_text like '%' || replace(replace(replace(lower(q), '\', '\\'), '%', '\%'), '_', '\_') || '%')
     and (cat is null or r.category = cat)
     and (not favorites_only or exists (
          select 1 from public.favorites f where f.recipe_id = r.id and f.member_id = auth.uid()))

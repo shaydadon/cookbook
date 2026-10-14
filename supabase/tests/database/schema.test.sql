@@ -1,6 +1,6 @@
 create extension if not exists pgtap with schema extensions;
 begin;
-select plan(7);
+select plan(10);
 
 select has_table('public', 'recipes', 'recipes table exists');
 select has_table('public', 'shares', 'shares table exists');
@@ -28,6 +28,9 @@ select throws_ok(
 
 select is((select count(*)::int from public.search_recipes('תרד', null, false, 24, 0)), 1,
           'search_recipes finds by ingredient');
+select is((select count(*)::int from public.search_recipes('%', null, false, 24, 0)), 0, 'percent is literal');
+select lives_ok($$ select * from public.search_recipes('a\', null, false, 24, 0) $$, 'trailing backslash does not error');
+select is((select count(*)::int from public.search_recipes(null, 'מרקים', false, 24, 0)), 0, 'category filter excludes other categories');
 
 select * from finish();
 rollback;
