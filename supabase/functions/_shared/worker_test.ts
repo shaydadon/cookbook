@@ -13,7 +13,16 @@ Deno.test("runWorker isolates a failing row and records the failure", async () =
     from: () => ({
       update: (patch: Record<string, unknown>) => {
         updates.push(patch);
-        return { eq: async () => (updates.length === 1 ? { error: { message: "boom" } } : { error: null }) };
+        const result = updates.length === 1
+          ? { data: null, error: { message: "boom" } }
+          : { data: [], error: null };
+        // Chainable and awaitable, like a PostgREST builder.
+        const chain = {
+          eq: () => chain,
+          select: async () => result,
+          then: (res: (v: typeof result) => unknown) => Promise.resolve(result).then(res),
+        };
+        return chain;
       },
     }),
   } as unknown as SupabaseClient;
@@ -31,6 +40,7 @@ Deno.test("runWorker isolates a failing row and records the failure", async () =
   assertEquals(steps, 1);
   assertEquals(updates.length >= 2, true);
   const last = updates[updates.length - 1];
+  assertEquals(last.error, "update recipe r1: boom");
   assertEquals(last.attempts, 1);
   assertEquals(last.locked_until, null);
 });
