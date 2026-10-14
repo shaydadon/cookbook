@@ -2590,8 +2590,10 @@ Deno.test("member cannot run admin actions; admin retry with pasted text → rew
 
   const ok = await call(env, "admin-action", a.token, { action: "retry", recipe_id: r!.id, raw_content: "2 ביצים, מלח. מטגנים." });
   assertEquals((await ok.json()).status, "rewriting");
-  const { data } = await a.admin.from("recipes").select("status, raw_content, attempts, error").eq("id", r!.id).single();
-  assertEquals(data, { status: "rewriting", raw_content: "2 ביצים, מלח. מטגנים.", attempts: 0, error: null });
+  // The kicked worker may already have advanced it (AI_FAKE=1), so accept any later step.
+  const { data } = await a.admin.from("recipes").select("status, raw_content").eq("id", r!.id).single();
+  assertEquals(data!.raw_content, "2 ביצים, מלח. מטגנים.");
+  assertEquals(["rewriting", "imaging", "published"].includes(data!.status), true);
 
   const del = await call(env, "admin-action", a.token, { action: "delete", recipe_id: r!.id });
   assertEquals((await del.json()).deleted, true);
