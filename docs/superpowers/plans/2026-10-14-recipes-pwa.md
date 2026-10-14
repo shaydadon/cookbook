@@ -718,9 +718,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setLoading(false);
         return;
       }
-      const { data } = await supabase.from("members").select("id, email, display_name, role").eq("id", s.user.id).maybeSingle();
+      // members.email is not readable by members (column grants, backend hardening migration) — take it from the session.
+      const { data } = await supabase.from("members").select("id, display_name, role").eq("id", s.user.id).maybeSingle();
       if (!cancelled) {
-        setMember((data as Member | null) ?? null);
+        setMember(data ? { ...(data as Omit<Member, "email">), email: s.user.email ?? "" } : null);
         setLoading(false);
       }
     }
