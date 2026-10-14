@@ -1,5 +1,5 @@
 import type { SupabaseClient } from "./npm.ts";
-import { advanceRecipe, type PipelineDeps } from "./pipeline.ts";
+import { advanceRecipe, MAX_ATTEMPTS, type PipelineDeps } from "./pipeline.ts";
 import { type PushSubscriptionRow, type SendFn, sendPushToAll } from "./push.ts";
 import type { RecipePatch, RecipeRow } from "./types.ts";
 
@@ -43,7 +43,21 @@ export async function runWorker(
     if (error) throw new Error(`claim: ${error.message}`);
     const recipe = (data as RecipeRow[] | null)?.[0];
     if (!recipe) break;
-    await runOne(db, deps, recipe);
+    try {
+      await runOne(db, deps, recipe);
+    } catch (e) {
+      console.error(`recipe ${recipe.id} failed`, e);
+      const attempts = recipe.attempts + 1;
+      try {
+        await db.from("recipes").update({
+          attempts,
+          error: e instanceof Error ? e.message : String(e),
+          next_attempt_at: new Date(Date.now() + 5 * 60_000).toISOString(),
+          locked_until: null,
+          ...(attempts >= MAX_ATTEMPTS ? { status: "failed" } : {}),
+        }).eq("id", recipe.id);
+      } catch (_) { /* best effort */ }
+    }
     steps++;
   }
   return steps;

@@ -18,8 +18,21 @@ const FAKE_RECIPE: RecipeAi = {
 // 1x1 transparent WebP
 const FAKE_WEBP = Uint8Array.from(atob("UklGRhoAAABXRUJQVlA4TA0AAAAvAAAAEAcQERGIiP4HAA=="), (c) => c.charCodeAt(0));
 
+const LOCAL_HOSTS = new Set(["127.0.0.1", "localhost", "kong", "host.docker.internal"]);
+
+export function isLocal(url: string | undefined | null): boolean {
+  if (!url) return false;
+  try {
+    return LOCAL_HOSTS.has(new URL(url).hostname);
+  } catch {
+    return false;
+  }
+}
+
 export function buildDeps(db: SupabaseClient): PipelineDeps & { sendPush: SendFn | null } {
-  const fake = Deno.env.get("AI_FAKE") === "1";
+  const wantsFake = Deno.env.get("AI_FAKE") === "1";
+  const fake = wantsFake && isLocal(Deno.env.get("SUPABASE_URL"));
+  if (wantsFake && !fake) console.warn("AI_FAKE=1 ignored: SUPABASE_URL is not a local host");
   const anthropic = fake ? null : new Anthropic({ apiKey: Deno.env.get("ANTHROPIC_API_KEY") });
   const vapidPublic = Deno.env.get("VAPID_PUBLIC_KEY");
   const vapidPrivate = Deno.env.get("VAPID_PRIVATE_KEY");

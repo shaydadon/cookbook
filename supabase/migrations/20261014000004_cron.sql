@@ -16,6 +16,7 @@ select cron.schedule(
     body := '{}'::jsonb,
     timeout_milliseconds := 5000)
   where exists (select 1 from public.recipes
-                where status in ('queued','rewriting','imaging') and next_attempt_at <= now());
+                where status in ('queued','rewriting','imaging') and next_attempt_at <= now())
+    and exists (select 1 from vault.decrypted_secrets where name = 'project_url');
   $$
 );
