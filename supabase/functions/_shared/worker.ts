@@ -23,8 +23,14 @@ export async function runOne(
   recipe: RecipeRow,
 ): Promise<RecipePatch> {
   const patch = await advanceRecipe(recipe, deps);
-  const { error } = await db.from("recipes").update({ ...patch, locked_until: null }).eq("id", recipe.id);
+  // Fence on the lease we claimed: if an admin reset the row meanwhile, do not overwrite it.
+  const { data: updated, error } = await db.from("recipes").update({ ...patch, locked_until: null })
+    .eq("id", recipe.id).eq("locked_until", recipe.locked_until).select("id");
   if (error) throw new Error(`update recipe ${recipe.id}: ${error.message}`);
+  if (!updated?.length) {
+    console.warn(`lease lost for recipe ${recipe.id}`);
+    return patch;
+  }
   if (patch.status === "published") {
     await notifyPublished(db, deps.sendPush, { id: recipe.id, title: patch.title ?? recipe.title ?? "" });
   }

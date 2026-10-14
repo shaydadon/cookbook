@@ -1,11 +1,11 @@
 import { getMember } from "../_shared/auth.ts";
 import { serviceClient } from "../_shared/db.ts";
-import { background, json, preflight } from "../_shared/http.ts";
+import { background, json, preflight, withErrors } from "../_shared/http.ts";
 import { ingest } from "../_shared/ingest-core.ts";
 import { extractUrls } from "../_shared/url.ts";
 import { kickWorker } from "../_shared/worker.ts";
 
-Deno.serve(async (req) => {
+Deno.serve(withErrors(async (req) => {
   const pre = preflight(req);
   if (pre) return pre;
   if (req.method !== "POST") return json({ error: "method_not_allowed" }, 405);
@@ -35,4 +35,4 @@ Deno.serve(async (req) => {
 
   if (results.some((r) => !r.duplicate)) background(kickWorker());
   return json({ results });
-});
+}));

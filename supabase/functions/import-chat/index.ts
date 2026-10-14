@@ -1,7 +1,7 @@
 import { getMember } from "../_shared/auth.ts";
 import { parseChatExport } from "../_shared/chat-export.ts";
 import { serviceClient } from "../_shared/db.ts";
-import { background, json, preflight } from "../_shared/http.ts";
+import { background, json, preflight, withErrors } from "../_shared/http.ts";
 import { ingest } from "../_shared/ingest-core.ts";
 import { extractUrls } from "../_shared/url.ts";
 import { kickWorker } from "../_shared/worker.ts";
@@ -9,7 +9,7 @@ import { kickWorker } from "../_shared/worker.ts";
 const BATCH = 100;
 const TIME_BUDGET_MS = 90_000;
 
-Deno.serve(async (req) => {
+Deno.serve(withErrors(async (req) => {
   const pre = preflight(req);
   if (pre) return pre;
   const db = serviceClient();
@@ -32,4 +32,4 @@ Deno.serve(async (req) => {
 
   if (created > 0) background(kickWorker());
   return json({ total: withLinks.length, next_offset: i < withLinks.length ? i : null, created, duplicates });
-});
+}));
