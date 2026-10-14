@@ -20,6 +20,11 @@ const SYSTEM_PROMPT = `אתה עורך מתכונים לאפליקציית מת�
 - image_prompt: משפט קצר באנגלית שמתאר רק את המנה המוגמרת (בלי טקסט, בלי אנשים).
 - לעולם אל תמציא מתכון. אם בתוכן אין רשימת מרכיבים ואופן הכנה שאפשר להבין מהם את המתכון, החזר insufficient_content: true ומלא את שאר השדות בערכים ריקים.`;
 
+/** Scraped text must not be able to close our <source> wrapper and speak outside it. */
+export function stripSourceTags(raw: string): string {
+  return raw.replace(/<\s*\/?\s*source\b[^>]*>/gi, "");
+}
+
 export async function rewriteRecipe(raw: string, client: Anthropic): Promise<RewriteResult> {
   const params = {
     model: REWRITE_MODEL,
@@ -31,7 +36,7 @@ export async function rewriteRecipe(raw: string, client: Anthropic): Promise<Rew
       format: { type: "json_schema", schema: RECIPE_JSON_SCHEMA },
     },
     system: SYSTEM_PROMPT,
-    messages: [{ role: "user", content: `<source>\n${raw}\n</source>` }],
+    messages: [{ role: "user", content: `<source>\n${stripSourceTags(raw)}\n</source>` }],
   };
   const response = await client.beta.messages.create(
     params as unknown as Parameters<typeof client.beta.messages.create>[0],

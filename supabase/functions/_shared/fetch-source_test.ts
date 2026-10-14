@@ -1,6 +1,67 @@
 import { assert, assertEquals, assertRejects, assertStringIncludes } from "jsr:@std/assert@1";
 import { fetchSource, MAX_HTML_BYTES, MAX_RAW_CONTENT, readCapped } from "./fetch-source.ts";
 
+const redirect = (to: string, status = 302) => new Response(null, { status, headers: { location: to } });
+const RECIPE_HTML = `<script type="application/ld+json">{"@type":"Recipe","name":"Soup","recipeIngredient":["water"]}</script>`;
+
+Deno.test("redirect to a private address is blocked: no fetch of it, null (not retryable)", async () => {
+  const calls: string[] = [];
+  const redirects: (string | undefined)[] = [];
+  const f = (async (input: string | URL | Request, init?: RequestInit) => {
+    calls.push(String(input));
+    redirects.push(init?.redirect);
+    return redirect("http://169.254.169.254/latest/meta-data");
+  }) as typeof fetch;
+  const out = await fetchSource({ url: "https://evil.test/r", platform: "web", messageText: null }, f);
+  assertEquals(out, null);
+  assertEquals(calls, ["https://evil.test/r"]);
+  assertEquals(redirects, ["manual"]);
+});
+
+Deno.test("blocked redirect still uses the WhatsApp message text", async () => {
+  const f = (async () => redirect("http://localhost:54321/rest/v1/")) as typeof fetch;
+  const msg = "עוגיות: 200 גרם חמאה, כוס סוכר, 2 כוסות קמח. מערבבים, יוצרים כדורים ואופים 12 דקות";
+  const out = await fetchSource({ url: "https://evil.test/r", platform: "web", messageText: msg }, f);
+  assertStringIncludes(out!, "200 גרם חמאה");
+});
+
+Deno.test("a private source URL is never fetched", async () => {
+  let calls = 0;
+  const f = (async () => {
+    calls++;
+    return htmlResponse(RECIPE_HTML);
+  }) as typeof fetch;
+  assertEquals(await fetchSource({ url: "http://10.0.0.5/r", platform: "web", messageText: null }, f), null);
+  assertEquals(calls, 0);
+});
+
+Deno.test("public relative redirects are followed manually", async () => {
+  const calls: string[] = [];
+  const f = (async (input: string | URL | Request) => {
+    const u = String(input);
+    calls.push(u);
+    if (u === "https://a.test/old") return redirect("/new", 301);
+    return htmlResponse(RECIPE_HTML);
+  }) as typeof fetch;
+  const out = await fetchSource({ url: "https://a.test/old", platform: "web", messageText: null }, f);
+  assertStringIncludes(out!, '"name":"Soup"');
+  assertEquals(calls, ["https://a.test/old", "https://a.test/new"]);
+});
+
+Deno.test("more than 5 redirects → nothing usable", async () => {
+  let n = 0;
+  const f = (async () => redirect(`https://a.test/hop${++n}`)) as typeof fetch;
+  assertEquals(await fetchSource({ url: "https://a.test/start", platform: "web", messageText: null }, f), null);
+  assertEquals(n, 6); // the start request + 5 followed redirects
+});
+
+Deno.test("allowLocal permits the local fixture host (local E2E only)", async () => {
+  const f = (async () => htmlResponse(RECIPE_HTML)) as typeof fetch;
+  const input = { url: "http://host.docker.internal:5199/r", platform: "web" as const, messageText: null };
+  assertEquals(await fetchSource(input, f), null);
+  assertStringIncludes((await fetchSource(input, f, { allowLocal: true }))!, '"name":"Soup"');
+});
+
 function htmlResponse(html: string, status = 200) {
   return new Response(html, { status, headers: { "content-type": "text/html; charset=utf-8" } });
 }

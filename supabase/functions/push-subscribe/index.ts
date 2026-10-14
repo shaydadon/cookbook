@@ -1,6 +1,7 @@
 import { getMember } from "../_shared/auth.ts";
 import { serviceClient } from "../_shared/db.ts";
 import { json, preflight, withErrors } from "../_shared/http.ts";
+import { isPublicHttpUrl } from "../_shared/safe-url.ts";
 
 Deno.serve(withErrors(async (req) => {
   const pre = preflight(req);
@@ -17,6 +18,10 @@ Deno.serve(withErrors(async (req) => {
     return json({ ok: true });
   }
   if (!body.keys?.p256dh || !body.keys?.auth) return json({ error: "keys_required" }, 400);
+  // The worker POSTs to stored endpoints: only public https push services are accepted.
+  if (!body.endpoint.startsWith("https:") || !isPublicHttpUrl(body.endpoint)) {
+    return json({ error: "invalid_endpoint", message: "כתובת ההתראות אינה תקינה" }, 400);
+  }
   // Upsert on endpoint: ownership moves to whoever posts the endpoint together with its keys,
   // because the browser (the current device user) is the holder of those keys.
   const { error } = await db.from("push_subscriptions").upsert(

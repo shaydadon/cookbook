@@ -1,4 +1,5 @@
 import { extractFromHtml } from "./extract.ts";
+import { isPublicHttpUrl, type SafeUrlOptions } from "./safe-url.ts";
 import type { Platform } from "./types.ts";
 import { BROWSER_HEADERS } from "./url.ts";
 
@@ -42,7 +43,39 @@ const OEMBED: Partial<Record<Platform, string>> = {
   youtube: "https://www.youtube.com/oembed?format=json&url=",
 };
 
-export async function fetchSource(input: SourceInput, fetchFn: typeof fetch = fetch): Promise<string | null> {
+export const MAX_REDIRECTS = 5;
+
+/** The URL (or a redirect hop) points at a private/internal address: treat as "nothing usable", never retry. */
+export class BlockedUrlError extends Error {
+  constructor(detail = "") {
+    super(detail ? `blocked url (${detail})` : "blocked url");
+  }
+}
+
+/** Fetches with manual redirects, checking every hop against the SSRF guard. */
+async function fetchPublic(
+  url: string,
+  init: RequestInit,
+  fetchFn: typeof fetch,
+  opts: SafeUrlOptions,
+): Promise<Response> {
+  let current = url;
+  for (let hop = 0;; hop++) {
+    if (!isPublicHttpUrl(current, opts)) throw new BlockedUrlError();
+    const res = await fetchFn(current, { ...init, redirect: "manual" });
+    const location = res.headers.get("location");
+    if (res.status < 300 || res.status >= 400 || !location) return res;
+    await res.body?.cancel();
+    if (hop >= MAX_REDIRECTS) throw new BlockedUrlError("too many redirects");
+    current = new URL(location, current).href;
+  }
+}
+
+export async function fetchSource(
+  input: SourceInput,
+  fetchFn: typeof fetch = fetch,
+  opts: SafeUrlOptions = {},
+): Promise<string | null> {
   const parts: string[] = [];
   let networkError: Error | null = null;
 
@@ -65,11 +98,10 @@ export async function fetchSource(input: SourceInput, fetchFn: typeof fetch = fe
   }
 
   try {
-    const res = await fetchFn(input.url, {
+    const res = await fetchPublic(input.url, {
       headers: BROWSER_HEADERS,
-      redirect: "follow",
       signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
-    });
+    }, fetchFn, opts);
     if (res.status === 429 || res.status >= 500) {
       networkError = new Error(`HTTP ${res.status} from source`);
       await res.body?.cancel();
@@ -90,7 +122,8 @@ export async function fetchSource(input: SourceInput, fetchFn: typeof fetch = fe
       await res.body?.cancel();
     }
   } catch (e) {
-    networkError = e as Error;
+    // A blocked URL is not a transient failure: fall through to the message text or null.
+    if (!(e instanceof BlockedUrlError)) networkError = e as Error;
   }
 
   const fromSource = parts.join("\n\n").trim();

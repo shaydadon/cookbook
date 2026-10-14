@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "./npm.ts";
+import { isPublicHttpUrl, localFetchAllowed, type SafeUrlOptions } from "./safe-url.ts";
 import { detectPlatform, extractUrls, normalizeUrl, resolveUrl } from "./url.ts";
 
 export interface IngestInput {
@@ -11,10 +12,16 @@ export interface IngestInput {
 
 export interface IngestResult { url: string; recipe_id: string; status: string; duplicate: boolean }
 
+/** Fail-closed: without a configured INGEST_SECRET no request counts as coming from Make. */
+export function isMakeRequest(req: Request, secret: string | undefined): boolean {
+  return !!secret && req.headers.get("x-ingest-secret") === secret;
+}
+
 export async function ingest(
   db: SupabaseClient,
   input: IngestInput,
   resolve: (u: string) => Promise<string> = (u) => resolveUrl(u),
+  opts: SafeUrlOptions = { allowLocal: localFetchAllowed() },
 ): Promise<IngestResult[]> {
   const results: IngestResult[] = [];
   const sharedAt = input.sentAt ?? new Date().toISOString();
@@ -22,7 +29,10 @@ export async function ingest(
   for (const raw of extractUrls(input.text)) {
     let normalized: string;
     try {
-      normalized = normalizeUrl(await resolve(raw));
+      if (!isPublicHttpUrl(raw, opts)) continue; // private/internal address
+      const resolved = await resolve(raw);
+      if (!isPublicHttpUrl(resolved, opts)) continue; // short link that expands to a private address
+      normalized = normalizeUrl(resolved);
     } catch {
       continue; // not a valid URL
     }

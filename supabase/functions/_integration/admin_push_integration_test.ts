@@ -54,6 +54,39 @@ Deno.test("member cannot run admin actions; admin retry with pasted text → rew
   }
 });
 
+Deno.test("admin retry resets the claim counter", async () => {
+  const env = await localEnv();
+  const a = await signIn(env, "admin-int@test.local", "admin");
+  const id = await insertRecipe(a.admin, {
+    status: "failed", claims: 3, attempts: 3, error: "העיבוד נקטע שוב ושוב (חריגת זמן)", raw_content: "קמח, ביצים. אופים.",
+  });
+  try {
+    const ok = await call(env, "admin-action", a.token, { action: "retry", recipe_id: id });
+    assertEquals((await ok.json()).status, "rewriting");
+    // The kicked worker may have claimed it once since (claims 1) or finished a step (back to 0).
+    const { data } = await a.admin.from("recipes").select("claims, attempts").eq("id", id).single();
+    assertEquals(data!.claims <= 1, true, `claims=${data!.claims}`);
+    assertEquals(data!.attempts, 0);
+  } finally {
+    await a.admin.from("recipes").delete().eq("id", id);
+  }
+});
+
+Deno.test("regenerate-image is refused (409 not_published) for a recipe that is not published", async () => {
+  const env = await localEnv();
+  const a = await signIn(env, "admin-int@test.local", "admin");
+  const id = await insertRecipe(a.admin, { status: "needs_review", title: "t" });
+  try {
+    const res = await call(env, "admin-action", a.token, { action: "regenerate-image", recipe_id: id });
+    assertEquals(res.status, 409);
+    assertEquals((await res.json()).error, "not_published");
+    const { data } = await a.admin.from("recipes").select("image_path").eq("id", id).single();
+    assertEquals(data!.image_path, null);
+  } finally {
+    await a.admin.from("recipes").delete().eq("id", id);
+  }
+});
+
 Deno.test("retry is refused (409) while leased or already published", async () => {
   const env = await localEnv();
   const a = await signIn(env, "admin-int@test.local", "admin");
@@ -97,16 +130,17 @@ Deno.test("regenerate-image replaces the image and removes the old file", async 
   const url = `https://adm.test/${crypto.randomUUID()}`;
   await a.admin.from("recipes").insert({
     id, source_url: url, source_url_normalized: url, source_platform: "web",
-    status: "published", title: "שקשוקה", image_path: oldPath,
+    status: "published", title: "שקשוקה", image_path: oldPath, error: "יצירת התמונה נכשלה (חריגת זמן)",
   });
   try {
     const res = await call(env, "admin-action", a.token, { action: "regenerate-image", recipe_id: id });
     assertEquals(res.status, 200);
     const { image_path } = await res.json();
     assertNotEquals(image_path, oldPath);
-    const { data: row } = await a.admin.from("recipes").select("image_path, status").eq("id", id).single();
+    const { data: row } = await a.admin.from("recipes").select("image_path, status, error").eq("id", id).single();
     assertEquals(row!.image_path, image_path);
     assertEquals(row!.status, "published");
+    assertEquals(row!.error, null);
     const { data: files } = await bucket.list(id);
     const names = (files ?? []).map((f) => f.name);
     assertEquals(names.includes("old.webp"), false);
@@ -132,6 +166,45 @@ Deno.test("push-subscribe stores and removes the caller's subscription", async (
   } finally {
     await m.admin.from("push_subscriptions").delete().eq("endpoint", endpoint);
   }
+});
+
+Deno.test("push-subscribe rejects non-https and private endpoints", async () => {
+  const env = await localEnv();
+  const m = await signIn(env, "member-int@test.local", "member");
+  const bad = [`http://push.test/${crypto.randomUUID()}`, "https://127.0.0.1/x", "https://kong:8000/x", "https://[::1]/x"];
+  try {
+    for (const endpoint of bad) {
+      const res = await call(env, "push-subscribe", m.token, { endpoint, keys: { p256dh: "p", auth: "a" } });
+      assertEquals(res.status, 400, endpoint);
+      assertEquals((await res.json()).error, "invalid_endpoint");
+    }
+    const { count } = await m.admin.from("push_subscriptions").select("*", { count: "exact", head: true }).in("endpoint", bad);
+    assertEquals(count, 0);
+  } finally {
+    await m.admin.from("push_subscriptions").delete().in("endpoint", bad);
+  }
+});
+
+Deno.test("ingest endpoint: unparseable body → 400 invalid_json, wrong secret → 401", async () => {
+  const env = await localEnv();
+  const secret = (await Deno.readTextFile(new URL("../.env", import.meta.url)))
+    .match(/^INGEST_SECRET=(.*)$/m)?.[1]?.trim();
+  if (!secret) throw new Error("INGEST_SECRET missing from supabase/functions/.env");
+  const post = (headers: Record<string, string>, body: string) =>
+    fetch(`${env.url}/functions/v1/ingest`, { method: "POST", headers: { "Content-Type": "application/json", ...headers }, body });
+
+  // What a raw Make template produces when the WhatsApp message has a line break and quotes.
+  const broken = await post({ "x-ingest-secret": secret }, `{"text": "line one\nsaid "hi" https://a.test/r"}`);
+  assertEquals(broken.status, 400);
+  assertEquals((await broken.json()).error, "invalid_json");
+
+  const noUrl = await post({ "x-ingest-secret": secret }, JSON.stringify({ text: "אין קישור" }));
+  assertEquals(noUrl.status, 400);
+  assertEquals((await noUrl.json()).error, "no_url");
+
+  const wrong = await post({ "x-ingest-secret": "nope" }, JSON.stringify({ text: "https://a.test/r" }));
+  assertEquals(wrong.status, 401);
+  await wrong.body?.cancel();
 });
 
 Deno.test("push DELETE only removes the caller's own subscription", async () => {

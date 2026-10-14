@@ -31,7 +31,7 @@ Deno.serve(withErrors(async (req) => {
       const pasted = body.raw_content?.trim();
       const status = pasted ? "rewriting" : resumeStatus(recipe);
       const { error } = await db.from("recipes").update({
-        status, attempts: 0, error: null, next_attempt_at: new Date().toISOString(), locked_until: null,
+        status, attempts: 0, claims: 0, error: null, next_attempt_at: new Date().toISOString(), locked_until: null,
         // Pasted text clears the title on purpose, so the rewrite step refills it from the new text.
         ...(pasted ? { raw_content: pasted.slice(0, 15000), title: null } : {}),
       }).eq("id", recipe.id);
@@ -40,10 +40,15 @@ Deno.serve(withErrors(async (req) => {
       return json({ status });
     }
     case "regenerate-image": {
+      // Only for published recipes: on an in-flight row this would race the worker's own imaging step.
+      if (recipe.status !== "published") {
+        return json({ error: "not_published", message: "אפשר ליצור תמונה חדשה רק למתכון שפורסם" }, 409);
+      }
       if (!recipe.title) return json({ error: "recipe_not_rewritten_yet" }, 409);
       const deps = buildDeps(db);
       const path = await deps.uploadImage(recipe.id, await deps.generateImage(recipe.image_prompt ?? recipe.title));
-      const { error } = await db.from("recipes").update({ image_path: path }).eq("id", recipe.id);
+      // Clears the "image generation failed" error left by a publish-without-image.
+      const { error } = await db.from("recipes").update({ image_path: path, error: null }).eq("id", recipe.id);
       if (error) return json({ error: error.message }, 500);
       if (recipe.image_path && recipe.image_path !== path) {
         await db.storage.from("recipe-images").remove([recipe.image_path]).catch(() => {});
