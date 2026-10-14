@@ -3,7 +3,15 @@ import { advanceRecipe, MAX_ATTEMPTS, type PipelineDeps } from "./pipeline.ts";
 import { type PushSubscriptionRow, type SendFn, sendPushToAll } from "./push.ts";
 import type { RecipePatch, RecipeRow } from "./types.ts";
 
-const START_NO_NEW_STEP_AFTER_MS = 60_000;
+// Free plan wall clock is 150 s: a step started at 20 s + the 120 s Anthropic timeout still fits.
+export const START_NO_NEW_STEP_AFTER_MS = 20_000;
+
+/** Chat-history imports must not push a notification per recipe: true when every share is an import. */
+export async function onlyImported(db: SupabaseClient, recipeId: string): Promise<boolean> {
+  const { data, error } = await db.from("shares").select("via").eq("recipe_id", recipeId);
+  if (error || !data?.length) return false;
+  return (data as { via: string }[]).every((s) => s.via === "import");
+}
 
 export async function notifyPublished(db: SupabaseClient, send: SendFn | null, recipe: { id: string; title: string }) {
   if (!send) return;
@@ -24,14 +32,16 @@ export async function runOne(
 ): Promise<RecipePatch> {
   const patch = await advanceRecipe(recipe, deps);
   // Fence on the lease we claimed: if an admin reset the row meanwhile, do not overwrite it.
-  const { data: updated, error } = await db.from("recipes").update({ ...patch, locked_until: null })
+  // A patch that changes status is a finished step: reset the claim counter (see claim_next_recipe).
+  const write = { ...patch, locked_until: null, ...(patch.status ? { claims: 0 } : {}) };
+  const { data: updated, error } = await db.from("recipes").update(write)
     .eq("id", recipe.id).eq("locked_until", recipe.locked_until).select("id");
   if (error) throw new Error(`update recipe ${recipe.id}: ${error.message}`);
   if (!updated?.length) {
     console.warn(`lease lost for recipe ${recipe.id}`);
     return patch;
   }
-  if (patch.status === "published") {
+  if (patch.status === "published" && deps.sendPush && !(await onlyImported(db, recipe.id))) {
     await notifyPublished(db, deps.sendPush, { id: recipe.id, title: patch.title ?? recipe.title ?? "" });
   }
   return patch;
@@ -61,7 +71,7 @@ export async function runWorker(
           next_attempt_at: new Date(Date.now() + 5 * 60_000).toISOString(),
           locked_until: null,
           ...(attempts >= MAX_ATTEMPTS ? { status: "failed" } : {}),
-        }).eq("id", recipe.id);
+        }).eq("id", recipe.id).eq("locked_until", recipe.locked_until); // same lease fence as runOne
       } catch (_) { /* best effort */ }
     }
     steps++;

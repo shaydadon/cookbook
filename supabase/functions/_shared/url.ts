@@ -59,10 +59,12 @@ export function detectPlatform(url: string): Platform {
   return "web";
 }
 
+export const RESOLVE_TIMEOUT_MS = 5000;
+
 export async function resolveUrl(url: string, fetchFn: typeof fetch = fetch): Promise<string> {
   if (!SHORT_HOSTS.has(bareHost(new URL(url).hostname))) return url;
   try {
-    const res = await fetchFn(url, { redirect: "follow", headers: BROWSER_HEADERS });
+    const res = await fetchFn(url, { redirect: "follow", headers: BROWSER_HEADERS, signal: AbortSignal.timeout(RESOLVE_TIMEOUT_MS) });
     await res.body?.cancel();
     return res.url || url;
   } catch {

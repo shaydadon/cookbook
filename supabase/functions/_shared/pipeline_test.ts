@@ -9,7 +9,7 @@ const base: RecipeRow = {
   id: "r1", status: "queued", source_url: "https://a.test", source_url_normalized: "https://a.test",
   source_platform: "web", raw_content: null, title: null, description: null, ingredients: [], steps: [],
   prep_minutes: null, cook_minutes: null, servings: null, category: null, tags: [], image_prompt: null,
-  image_path: null, error: null, attempts: 0, next_attempt_at: NOW.toISOString(), locked_until: null, published_at: null,
+  image_path: null, error: null, attempts: 0, claims: 0, next_attempt_at: NOW.toISOString(), locked_until: null, published_at: null,
 };
 
 const AI: RecipeAi = {

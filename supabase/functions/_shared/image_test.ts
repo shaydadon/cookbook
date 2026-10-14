@@ -1,5 +1,16 @@
 import { assertEquals, assertRejects } from "jsr:@std/assert@1";
-import { generateImage, IMAGE_STYLE } from "./image.ts";
+import { generateImage, IMAGE_STYLE, IMAGE_TIMEOUT_MS } from "./image.ts";
+
+Deno.test("image request carries a 90 s abort signal", async () => {
+  let signal: unknown;
+  const f = (async (_url: string | URL | Request, init?: RequestInit) => {
+    signal = init?.signal;
+    return Response.json({ data: [{ b64_json: btoa("W") }] });
+  }) as typeof fetch;
+  await generateImage("x", { apiKey: "k", model: "m", fetchFn: f });
+  assertEquals(signal instanceof AbortSignal, true);
+  assertEquals(IMAGE_TIMEOUT_MS, 90_000);
+});
 
 Deno.test("posts prompt + house style, decodes b64 WebP", async () => {
   let body: Record<string, unknown> = {};

@@ -40,6 +40,8 @@ export interface RecipeRow {
   image_path: string | null;
   error: string | null;
   attempts: number;
+  /** Claims since the last successful step; the DB ends the row after 3 (see claim_next_recipe). */
+  claims: number;
   next_attempt_at: string;
   locked_until: string | null;
   published_at: string | null;

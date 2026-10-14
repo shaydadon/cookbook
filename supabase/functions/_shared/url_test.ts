@@ -1,5 +1,22 @@
 import { assertEquals, assertThrows } from "jsr:@std/assert@1";
-import { detectPlatform, extractUrls, normalizeUrl, resolveUrl } from "./url.ts";
+import { detectPlatform, extractUrls, normalizeUrl, RESOLVE_TIMEOUT_MS, resolveUrl } from "./url.ts";
+
+Deno.test("resolveUrl passes a 5 s abort signal to fetch", async () => {
+  let signal: unknown;
+  const f = (async (_input: string | URL | Request, init?: RequestInit) => {
+    signal = init?.signal;
+    return new Response(null, { status: 200 });
+  }) as typeof fetch;
+  await resolveUrl("https://bit.ly/x", f);
+  assertEquals(signal instanceof AbortSignal, true);
+  assertEquals(RESOLVE_TIMEOUT_MS, 5000);
+});
+
+Deno.test("resolveUrl falls back to the input when the fetch is aborted (timeout)", async () => {
+  // Simulate the timeout firing: reject the way fetch does when its signal aborts.
+  const f = (() => Promise.reject(new DOMException("The signal has been aborted", "TimeoutError"))) as typeof fetch;
+  assertEquals(await resolveUrl("https://bit.ly/slow", f), "https://bit.ly/slow");
+});
 
 Deno.test("extractUrls finds links in Hebrew text and strips trailing punctuation", () => {
   const text = "תראו את זה!! https://www.foodsdictionary.co.il/Recipes/1234. וגם (https://youtu.be/abc123?si=xyz) יאמי";

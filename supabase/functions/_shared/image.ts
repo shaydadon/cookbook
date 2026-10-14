@@ -3,6 +3,8 @@ import { decodeBase64 } from "./npm.ts";
 export const IMAGE_STYLE =
   "Professional food photography, natural window light, 45-degree angle, neutral linen and wood surface, shallow depth of field, appetizing, no text, no hands.";
 
+export const IMAGE_TIMEOUT_MS = 90_000;
+
 export async function generateImage(
   prompt: string,
   opts: { apiKey: string; model: string; fetchFn?: typeof fetch },
@@ -10,6 +12,7 @@ export async function generateImage(
   const fetchFn = opts.fetchFn ?? fetch;
   const res = await fetchFn("https://api.openai.com/v1/images/generations", {
     method: "POST",
+    signal: AbortSignal.timeout(IMAGE_TIMEOUT_MS),
     headers: { Authorization: `Bearer ${opts.apiKey}`, "Content-Type": "application/json" },
     body: JSON.stringify({
       model: opts.model,
