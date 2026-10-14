@@ -43,18 +43,29 @@ Expected: `{"kind":"ok","recipe":{"title":"<Hebrew>", ...}}` with Hebrew steps. 
 ## 4. Make scenario
 1. Trigger: **Webhooks → Custom webhook** (copy its URL into Green API).
 2. Filter: `messageData.textMessageData.textMessage` *or* `messageData.extendedTextMessageData.text` contains `http`, **and** `senderData.chatId` equals the group id (ends with `@g.us`).
-3. Action: **HTTP → Make a request**
+3. Action: **JSON → Create JSON**. Do **not** type the body as a raw JSON string with `{{…}}` placeholders: a
+   WhatsApp message with a line break, a double quote or a backslash produces invalid JSON, and `ingest` rejects it
+   with `400 {"error":"invalid_json"}`. Create JSON escapes the values for you.
+   - Data structure: click **Add**, name it `ingest message`, and add three fields of type *Text*:
+     `text`, `sender_name`, `sent_at`.
+   - Map them:
+     - `text` → `coalesce(messageData.extendedTextMessageData.text; messageData.textMessageData.textMessage)`
+     - `sender_name` → `senderData.senderName`
+     - `sent_at` → `formatDate(parseDate(timestamp; "X"); "YYYY-MM-DDTHH:mm:ssZ")`
+   - `sent_at` must always be mapped from the WhatsApp message timestamp. Without it, gateway re-deliveries of the
+     same message are not recognised and create duplicate shares.
+4. Action: **HTTP → Make a request**
    - URL: `https://<ref>.supabase.co/functions/v1/ingest`
-   - Method: POST, Body type: Raw, Content type: JSON
+   - Method: POST
    - Headers: `x-ingest-secret: <INGEST_SECRET>` (the long random value from step 2)
-   - Body:
-     ```json
-     {"text": "{{coalesce(messageData.extendedTextMessageData.text; messageData.textMessageData.textMessage)}}",
-      "sender_name": "{{senderData.senderName}}",
-      "sent_at": "{{formatDate(parseDate(timestamp; \"X\"); \"YYYY-MM-DDTHH:mm:ssZ\")}}"}
-     ```
-   - The body must always include `sent_at`, mapped from the WhatsApp message timestamp. Without it, gateway re-deliveries of the same message are not recognised and create duplicate shares.
-4. Turn the scenario on. Post a link in the group and watch `recipes` in the Table Editor.
+   - Body type: Raw, Content type: JSON (application/json), Request content: map the **JSON string** output of the
+     Create JSON module from step 3 (nothing else in the field).
+   - (Alternative: newer versions of the HTTP module offer a body type "JSON (application/json)" that takes a data
+     structure directly; use the same three fields. Either way the module, not you, builds the JSON.)
+   - `ingest` answers `400 invalid_json` when the body is not valid JSON, and `400 no_url` when the JSON is fine but
+     the message has no link.
+5. Turn the scenario on. Post a link in the group, including one with several lines and "quotes", and watch
+   `recipes` in the Table Editor.
 
 ## 5. Importing history
 In WhatsApp: group → ⋮ → More → Export chat → **Without media**. Upload the `.txt` in the app's admin screen.
