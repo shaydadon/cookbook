@@ -4,7 +4,32 @@ import { BROWSER_HEADERS } from "./url.ts";
 
 export const MAX_RAW_CONTENT = 15000;
 export const MAX_HTML_BYTES = 2_000_000;
+export const FETCH_TIMEOUT_MS = 15000;
 const MIN_USEFUL_CHARS = 40;
+
+/** Reads at most maxBytes of the body, then cancels the stream. */
+export async function readCapped(res: Response, maxBytes: number): Promise<string> {
+  if (!res.body) return (await res.text()).slice(0, maxBytes);
+  const reader = res.body.getReader();
+  const chunks: Uint8Array[] = [];
+  let total = 0;
+  while (total < maxBytes) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    chunks.push(value);
+    total += value.byteLength;
+  }
+  await reader.cancel().catch(() => {});
+  const all = new Uint8Array(Math.min(total, maxBytes));
+  let offset = 0;
+  for (const c of chunks) {
+    if (offset >= all.length) break;
+    const piece = c.subarray(0, all.length - offset);
+    all.set(piece, offset);
+    offset += piece.byteLength;
+  }
+  return new TextDecoder("utf-8", { fatal: false }).decode(all);
+}
 
 export interface SourceInput {
   url: string;
@@ -24,7 +49,9 @@ export async function fetchSource(input: SourceInput, fetchFn: typeof fetch = fe
   const oembed = OEMBED[input.platform];
   if (oembed) {
     try {
-      const res = await fetchFn(oembed + encodeURIComponent(input.url));
+      const res = await fetchFn(oembed + encodeURIComponent(input.url), {
+        signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
+      });
       if (res.ok) {
         const j = await res.json();
         if (j.title) parts.push(`כיתוב הפוסט: ${j.title}`);
@@ -38,9 +65,16 @@ export async function fetchSource(input: SourceInput, fetchFn: typeof fetch = fe
   }
 
   try {
-    const res = await fetchFn(input.url, { headers: BROWSER_HEADERS, redirect: "follow" });
-    if (res.ok && (res.headers.get("content-type") ?? "").includes("html")) {
-      const html = (await res.text()).slice(0, MAX_HTML_BYTES);
+    const res = await fetchFn(input.url, {
+      headers: BROWSER_HEADERS,
+      redirect: "follow",
+      signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
+    });
+    if (res.status === 429 || res.status >= 500) {
+      networkError = new Error(`HTTP ${res.status} from source`);
+      await res.body?.cancel();
+    } else if (res.ok && (res.headers.get("content-type") ?? "").includes("html")) {
+      const html = await readCapped(res, MAX_HTML_BYTES);
       const ex = extractFromHtml(html);
       if (ex.jsonLdRecipe) {
         parts.push(`נתוני מתכון מובנים (JSON-LD):\n${JSON.stringify(ex.jsonLdRecipe)}`);
@@ -67,8 +101,7 @@ export async function fetchSource(input: SourceInput, fetchFn: typeof fetch = fe
     return null;
   }
 
-  const combined = [fromSource, message && `הודעת הוואטסאפ ששותפה עם הקישור:\n${message}`]
-    .filter(Boolean)
-    .join("\n\n");
-  return combined.slice(0, MAX_RAW_CONTENT);
+  const messagePart = message ? `הודעת הוואטסאפ ששותפה עם הקישור:\n${message}` : "";
+  const sourcePart = fromSource.slice(0, Math.max(0, MAX_RAW_CONTENT - messagePart.length - 2));
+  return [sourcePart, messagePart].filter(Boolean).join("\n\n").slice(0, MAX_RAW_CONTENT);
 }
