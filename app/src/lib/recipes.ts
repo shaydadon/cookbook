@@ -56,7 +56,20 @@ export async function ingestLink(text: string): Promise<IngestResult[]> {
 
 export async function adminAction(body: AdminActionBody): Promise<Record<string, unknown>> {
   const { data, error } = await supabase.functions.invoke("admin-action", { body });
-  if (error) throw error;
+  if (error) {
+    // FunctionsHttpError carries the Response in `context`; surface the server's Hebrew message.
+    let message: string | null = null;
+    const ctx = (error as { context?: unknown }).context;
+    if (ctx instanceof Response) {
+      try {
+        const j = (await ctx.json()) as { message?: unknown };
+        if (typeof j.message === "string" && j.message) message = j.message;
+      } catch {
+        // body was not JSON; fall back to the original error
+      }
+    }
+    throw message ? new Error(message) : error;
+  }
   return data as Record<string, unknown>;
 }
 
