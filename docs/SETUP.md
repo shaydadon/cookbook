@@ -87,9 +87,9 @@ For the local cron job, add Vault secrets with `project_url = http://host.docker
 ## 7. CI/CD
 `.github/workflows/deploy-backend.yml` runs on push to `main` (paths `supabase/**`): unit tests, local Supabase, DB tests, then the integration tests that do not need served functions, then `db push` and `functions deploy`. Add repository secrets `SUPABASE_ACCESS_TOKEN`, `SUPABASE_DB_PASSWORD` and `SUPABASE_PROJECT_REF`; without them the deploy job skips with a warning.
 
-## 7. PWA on Vercel
+## 8. PWA on Vercel
 1. Import the GitHub repo in Vercel; set **Root Directory** = `app`.
-2. Environment variables (Production + Preview): `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY` (Supabase → Settings → API), `VITE_VAPID_PUBLIC_KEY` (same public key as the function secret).
-3. Deploy. Copy the `https://<name>.vercel.app` URL into Supabase → Authentication → URL configuration (Site URL and Redirect URLs) and into the Google OAuth client's authorised JavaScript origins.
+2. Environment variables (Production): `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY` (Supabase → Settings → API), `VITE_VAPID_PUBLIC_KEY` (same public key as the function secret). Preview deployments need their URL added to Supabase Redirect URLs before sign-in works there.
+3. Deploy. Copy the `https://<name>.vercel.app` URL into Supabase → Authentication → URL configuration (Site URL and Redirect URLs). No Google change is needed — sign-in redirects through the Supabase callback already added in step 1.6.
 4. On Android Chrome: open the URL → "Install app". On iPhone Safari: Share → "Add to Home Screen" (needed for push).
-5. Test the share sheet: in Instagram/TikTok tap Share → the app → the Add screen opens with the link filled in.
+5. Test the share sheet: install the app first (step 4); it appears in the share sheet only after installation. Then in Instagram/TikTok tap Share → the app → the Add screen opens with the link filled in.
