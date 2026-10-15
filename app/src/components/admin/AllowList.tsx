@@ -47,7 +47,7 @@ export function AllowList() {
           <li key={a.email} className="flex items-center justify-between gap-2 p-3">
             <span><span dir="ltr">{a.email}</span>{a.whatsapp_name && ` · ${a.whatsapp_name}`}{a.role === "admin" && " · מנהל/ת"}</span>
             {a.role !== "admin" && (
-              <button className="min-h-10 rounded-full border border-line px-3 text-sm"
+              <button className="min-h-11 rounded-full border border-line px-3 text-sm"
                 onClick={() => window.confirm(`להסיר את ${a.email}?`) && remove.mutate(a.email)}>הסרה</button>
             )}
           </li>

@@ -65,10 +65,10 @@ export async function adminAction(body: AdminActionBody): Promise<Record<string,
         const j = (await ctx.json()) as { message?: unknown };
         if (typeof j.message === "string" && j.message) message = j.message;
       } catch {
-        // body was not JSON; fall back to the original error
+        // body was not JSON; fall back to the generic Hebrew message
       }
     }
-    throw message ? new Error(message) : error;
+    throw new Error(message ?? "הפעולה נכשלה.");
   }
   return data as Record<string, unknown>;
 }

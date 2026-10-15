@@ -3,10 +3,15 @@ import { type FormEvent, useEffect, useState } from "react";
 import { CATEGORIES } from "../../lib/categories";
 import { ingredientsToText, stepsToText, textToIngredients, textToSteps } from "../../lib/edit-format";
 import { adminAction, getRecipe, updateRecipe } from "../../lib/recipes";
+import { STATUS_LABEL } from "../../lib/status";
+
+const UUID_RE = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i;
+const EDITABLE = ["published", "needs_review", "failed"];
 
 export function EditRecipe() {
   const qc = useQueryClient();
-  const [id, setId] = useState("");
+  const [input, setInput] = useState("");
+  const id = input.match(UUID_RE)?.[0] ?? "";
   const recipe = useQuery({ queryKey: ["recipe", id], queryFn: () => getRecipe(id), enabled: id.length === 36 });
   const [form, setForm] = useState({ title: "", description: "", category: "", tags: "", ingredients: "", steps: "" });
   const [msg, setMsg] = useState<string | null>(null);
@@ -21,23 +26,32 @@ export function EditRecipe() {
     });
   }, [recipe.data]);
 
+  const status = recipe.data?.status;
+  const editable = !!status && EDITABLE.includes(status);
+
   async function save(e: FormEvent) {
     e.preventDefault();
     setMsg(null);
     setErr(null);
+    const ingredients = textToIngredients(form.ingredients);
+    const steps = textToSteps(form.steps);
+    if (!form.title.trim() || !ingredients.length || !steps.length) {
+      setErr("חובה למלא כותרת, מרכיבים ושלבים.");
+      return;
+    }
     try {
       await updateRecipe(id, {
         title: form.title.trim(),
         description: form.description.trim() || null,
         category: form.category || null,
         tags: form.tags.split(",").map((t) => t.trim()).filter(Boolean),
-        ingredients: textToIngredients(form.ingredients),
-        steps: textToSteps(form.steps),
+        ingredients,
+        steps,
       });
       await qc.invalidateQueries({ queryKey: ["recipe", id] });
       setMsg("נשמר");
-    } catch (e2) {
-      setErr(e2 instanceof Error && e2.message ? e2.message : "הפעולה נכשלה.");
+    } catch {
+      setErr("השמירה נכשלה.");
     }
   }
 
@@ -57,10 +71,13 @@ export function EditRecipe() {
   return (
     <div className="flex flex-col gap-3">
       <label htmlFor="edit-id" className="font-medium">מזהה מתכון (מהכתובת /recipe/…)</label>
-      <input id="edit-id" dir="ltr" value={id} onChange={(e) => setId(e.target.value.trim().split("/").pop() ?? "")} className={field} />
+      <input id="edit-id" dir="ltr" value={input} onChange={(e) => setInput(e.target.value.trim())} className={field} />
+      {recipe.isError && <p role="alert" className="text-red-700">המתכון לא נמצא.</p>}
       {recipe.data && (
         <form onSubmit={save} className="flex flex-col gap-2">
-          <input aria-label="כותרת" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} className={field} />
+          <p className="text-sm text-muted">סטטוס: {STATUS_LABEL[recipe.data.status]}</p>
+          {!editable && <p className="text-sm">המתכון בעיבוד — אפשר לערוך אחרי שיסתיים</p>}
+          <input aria-label="כותרת" required value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} className={field} />
           <textarea aria-label="תיאור" rows={2} value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} className={field} />
           <select aria-label="קטגוריה" value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })} className={field}>
             <option value="">—</option>
@@ -71,8 +88,9 @@ export function EditRecipe() {
             onChange={(e) => setForm({ ...form, ingredients: e.target.value })} className={field} />
           <textarea aria-label="שלבים (שורה לכל שלב)" rows={8} value={form.steps} onChange={(e) => setForm({ ...form, steps: e.target.value })} className={field} />
           <div className="flex gap-2">
-            <button className="min-h-11 flex-1 rounded-full bg-accent text-white">שמירה</button>
-            <button type="button" className="min-h-11 rounded-full border border-line px-4" onClick={regenerateImage}>
+            <button disabled={!editable} className="min-h-11 flex-1 rounded-full bg-accent text-white disabled:opacity-60">שמירה</button>
+            <button type="button" disabled={recipe.data.status !== "published"} onClick={regenerateImage}
+              className="min-h-11 rounded-full border border-line px-4 disabled:opacity-60">
               תמונה חדשה
             </button>
           </div>

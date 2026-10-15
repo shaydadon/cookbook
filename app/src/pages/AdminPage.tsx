@@ -20,13 +20,18 @@ export default function AdminPage() {
     <div className="flex flex-col gap-4 pt-2">
       <div role="tablist" className="flex gap-2 overflow-x-auto">
         {TABS.map((t) => (
-          <button key={t.key} role="tab" aria-selected={tab === t.key} onClick={() => setTab(t.key)}
-            className={`min-h-10 shrink-0 rounded-full px-4 ${tab === t.key ? "bg-ink text-white" : "border border-line bg-white"}`}>
+          <button key={t.key} role="tab" id={`tab-${t.key}`} aria-controls={`panel-${t.key}`} aria-selected={tab === t.key}
+            onClick={() => setTab(t.key)}
+            className={`min-h-11 shrink-0 rounded-full px-4 ${tab === t.key ? "bg-ink text-white" : "border border-line bg-white"}`}>
             {t.label}
           </button>
         ))}
       </div>
-      {TABS.find((t) => t.key === tab)!.el}
+      {TABS.map((t) => (
+        <div key={t.key} role="tabpanel" id={`panel-${t.key}`} aria-labelledby={`tab-${t.key}`} hidden={tab !== t.key}>
+          {t.el}
+        </div>
+      ))}
     </div>
   );
 }

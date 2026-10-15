@@ -10,6 +10,7 @@ export function ChatImport() {
   async function onFile(file: File) {
     setBusy(true);
     setError(null);
+    setProgress(null);
     try {
       const content = await file.text();
       await runImport(content, async (body) => {
@@ -27,9 +28,14 @@ export function ChatImport() {
   return (
     <div className="flex flex-col gap-3">
       <p className="text-sm text-muted">בוואטסאפ: הקבוצה ← ⋮ ← עוד ← ייצוא צ'אט ← ללא מדיה. העלו כאן את קובץ ה-txt.</p>
+      <p className="text-sm text-muted">באייפון הקובץ מגיע כ-zip — פתחו אותו והעלו את _chat.txt</p>
       <label htmlFor="chat-file" className="font-medium">קובץ ייצוא (.txt)</label>
       <input id="chat-file" type="file" accept=".txt,text/plain" disabled={busy}
-        onChange={(e) => e.target.files?.[0] && onFile(e.target.files[0])} />
+        onChange={(e) => {
+          const file = e.currentTarget.files?.[0];
+          e.currentTarget.value = "";
+          if (file) void onFile(file);
+        }} />
       {progress && (
         <p role="status">
           {progress.done} מתוך {progress.total} הודעות עם קישור · {progress.created} מתכונים חדשים · {progress.duplicates} כבר היו
