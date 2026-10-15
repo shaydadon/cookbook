@@ -3,8 +3,9 @@ import { CacheableResponsePlugin } from "workbox-cacheable-response";
 import { ExpirationPlugin } from "workbox-expiration";
 import { cleanupOutdatedCaches, createHandlerBoundToURL, precacheAndRoute } from "workbox-precaching";
 import { NavigationRoute, registerRoute } from "workbox-routing";
-import { CacheFirst, StaleWhileRevalidate } from "workbox-strategies";
+import { CacheFirst, NetworkFirst } from "workbox-strategies";
 import { RECIPE_IMAGES_CACHE, RECIPES_API_CACHE } from "./lib/cache-names";
+import { isRecipesApiRequest, notificationTarget } from "./lib/sw-helpers";
 
 declare let self: ServiceWorkerGlobalScope;
 
@@ -15,10 +16,22 @@ precacheAndRoute(self.__WB_MANIFEST);
 cleanupOutdatedCaches();
 registerRoute(new NavigationRoute(createHandlerBoundToURL("index.html")));
 
-// Opened recipes and their shares: readable offline (cleared on sign-out / user change by the app)
+// Opened recipes, their shares and feed pages: readable offline (cleared on sign-out / user change by the app).
+// Deliberate deviation from spec §6 ("stale-while-revalidate"): NetworkFirst keeps online data fresh
+// (SWR served the previous response first, so edits/deletes showed up one visit late); offline readability
+// is preserved because the cached copy is used when the network fails or takes longer than 4 s.
+// Only single-recipe reads (id=eq.), shares and the search_recipes GET are cached; the admin list
+// (status=in.), favourites and every other request bypass the SW.
 registerRoute(
-  ({ url, request }) => request.method === "GET" && /\/rest\/v1\/(recipes|shares)/.test(url.pathname),
-  new StaleWhileRevalidate({ cacheName: RECIPES_API_CACHE, plugins: [new ExpirationPlugin({ maxEntries: 300, maxAgeSeconds: 60 * 60 * 24 * 30 })] }),
+  ({ url, request }) => isRecipesApiRequest(url, request.method),
+  new NetworkFirst({
+    cacheName: RECIPES_API_CACHE,
+    networkTimeoutSeconds: 4,
+    plugins: [
+      new CacheableResponsePlugin({ statuses: [200] }),
+      new ExpirationPlugin({ maxEntries: 300, maxAgeSeconds: 60 * 60 * 24 * 30 }),
+    ],
+  }),
 );
 
 // Recipe images (CORS requests only; opaque responses are not cached)
@@ -49,7 +62,7 @@ self.addEventListener("push", (event) => {
 
 self.addEventListener("notificationclick", (event) => {
   event.notification.close();
-  const url = (event.notification.data as { url?: string })?.url ?? "/";
+  const url = notificationTarget((event.notification.data as { url?: string } | null)?.url, self.location.origin);
   event.waitUntil((async () => {
     const all = await self.clients.matchAll({ type: "window", includeUncontrolled: true });
     const existing = all.find((c) => new URL(c.url).origin === self.location.origin);

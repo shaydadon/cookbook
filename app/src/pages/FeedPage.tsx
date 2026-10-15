@@ -47,12 +47,20 @@ export default function FeedPage({ favoritesOnly = false }: { favoritesOnly?: bo
 
   return (
     <div className="flex flex-col gap-3 pt-2">
+      <h1 className="sr-only">{favoritesOnly ? "המועדפים שלי" : "המתכונים"}</h1>
       {!favoritesOnly && <IosInstallHint />}
       {!favoritesOnly && <PushPrompt />}
       <SearchBar value={q} onChange={(v) => update("q", v || null)} />
       <CategoryChips value={category} onChange={(v) => update("cat", v)} />
       {query.isPending && <p role="status" className="py-8 text-center text-muted">טוען…</p>}
-      {query.isError && <p role="alert" className="py-8 text-center text-red-700">לא הצלחנו לטעון מתכונים.</p>}
+      {query.isError && (
+        <div role="alert" className="flex flex-col items-center gap-3 py-8 text-center text-red-700">
+          <p>{navigator.onLine ? "לא הצלחנו לטעון מתכונים." : "אין חיבור לאינטרנט"}</p>
+          <button type="button" onClick={() => query.refetch()} className="min-h-11 rounded-full bg-accent px-6 font-medium text-white">
+            נסו שוב
+          </button>
+        </div>
+      )}
       {query.isSuccess && !query.isPlaceholderData && recipes.length === 0 && <p className="py-12 text-center text-muted">{empty}</p>}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
         {recipes.map((r) => (

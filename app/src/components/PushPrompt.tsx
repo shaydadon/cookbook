@@ -2,9 +2,21 @@ import { useEffect, useState } from "react";
 import { pushSupported, subscribePush } from "../lib/push";
 
 const KEY = "push-prompt-dismissed";
+export const RESUBSCRIBED_KEY = "push-resubscribed";
 
 function readDismissed(): boolean {
   try { return localStorage.getItem(KEY) === "1"; } catch { return false; }
+}
+
+/** True the first time per browser session; storage failures count as "already done" (never loop). */
+function firstResubscribeThisSession(): boolean {
+  try {
+    if (sessionStorage.getItem(RESUBSCRIBED_KEY) === "1") return false;
+    sessionStorage.setItem(RESUBSCRIBED_KEY, "1");
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 export function PushPrompt() {
@@ -14,10 +26,11 @@ export function PushPrompt() {
   const [error, setError] = useState(false);
   const [busy, setBusy] = useState(false);
 
-  // Permission already granted (e.g. earlier session): refresh the subscription silently. Never prompts.
+  // Permission already granted (e.g. earlier session): refresh the subscription silently, at most once per
+  // session (the feed remounts often). Never prompts.
   useEffect(() => {
     const key = import.meta.env.VITE_VAPID_PUBLIC_KEY;
-    if (pushSupported() && Notification.permission === "granted" && key) {
+    if (pushSupported() && Notification.permission === "granted" && key && firstResubscribeThisSession()) {
       subscribePush(key).catch(() => { /* ignore */ });
     }
   }, []);

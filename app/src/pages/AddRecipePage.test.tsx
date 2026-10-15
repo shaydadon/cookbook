@@ -55,3 +55,21 @@ test("shows an error when the server fails", async () => {
   await userEvent.click(screen.getByRole("button", { name: "הוספה" }));
   expect(await screen.findByRole("alert")).toHaveTextContent("משהו השתבש");
 });
+
+test("offline on submit says there is no connection and keeps the link", async () => {
+  const spy = vi.spyOn(navigator, "onLine", "get").mockReturnValue(false);
+  try {
+    renderWithProviders(<AddRecipePage />, { route: "/add?url=https%3A%2F%2Fa.test%2Fr" });
+    await userEvent.click(screen.getByRole("button", { name: "הוספה" }));
+    expect(await screen.findByRole("alert")).toHaveTextContent("אין חיבור לאינטרנט");
+    expect(screen.getByLabelText("קישור למתכון")).toHaveValue("https://a.test/r");
+  } finally {
+    spy.mockRestore();
+  }
+});
+
+test("the page has a single h1", () => {
+  renderWithProviders(<AddRecipePage />, { route: "/add" });
+  expect(screen.getAllByRole("heading", { level: 1 })).toHaveLength(1);
+  expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("הוספת מתכון");
+});

@@ -15,5 +15,5 @@
     "noUnusedLocals": true,
     "noUnusedParameters": true
   },
-  "include": ["src/sw.ts", "src/lib/cache-names.ts"]
+  "include": ["src/sw.ts", "src/lib/cache-names.ts", "src/lib/sw-helpers.ts"]
 }

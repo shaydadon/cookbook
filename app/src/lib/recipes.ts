@@ -11,13 +11,17 @@ export type AdminActionBody =
 // ---------- data access ----------
 
 export async function listRecipes(o: { q: string; category: string | null; favoritesOnly: boolean; page: number }): Promise<Recipe[]> {
+  // GET so the SW can cache feed pages for offline use (search_recipes is `stable`, PostgREST allows GET).
+  // With GET, args go into the query string and null would become the text "null": omit empty ones instead
+  // (the function defaults q and cat to null).
+  const q = o.q.trim();
   const { data, error } = await supabase.rpc("search_recipes", {
-    q: o.q.trim() || null,
-    cat: o.category,
+    ...(q ? { q } : {}),
+    ...(o.category ? { cat: o.category } : {}),
     favorites_only: o.favoritesOnly,
     page_size: PAGE_SIZE,
     page_offset: o.page * PAGE_SIZE,
-  });
+  }, { get: true });
   if (error) throw error;
   return (data ?? []) as Recipe[];
 }

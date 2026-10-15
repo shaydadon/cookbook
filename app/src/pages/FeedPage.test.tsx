@@ -90,4 +90,32 @@ test("favourites page asks for favourites only", async () => {
   renderWithProviders(<FeedPage favoritesOnly />);
   await waitFor(() => expect(listRecipes).toHaveBeenCalledWith(expect.objectContaining({ favoritesOnly: true })));
   expect(await screen.findByText("עוד לא סימנת מתכונים כמועדפים")).toBeInTheDocument();
+  expect(screen.getByRole("heading", { level: 1, name: "המועדפים שלי" })).toBeInTheDocument();
+});
+
+test("feed has a single (visually hidden) h1", async () => {
+  listRecipes.mockResolvedValue([]);
+  renderWithProviders(<FeedPage />);
+  expect(await screen.findByRole("heading", { level: 1, name: "המתכונים" })).toBeInTheDocument();
+  expect(screen.getAllByRole("heading", { level: 1 })).toHaveLength(1);
+});
+
+test("load error shows a retry button that refetches", async () => {
+  listRecipes.mockRejectedValueOnce(new Error("500"));
+  renderWithProviders(<FeedPage />);
+  expect(await screen.findByRole("alert")).toHaveTextContent("לא הצלחנו לטעון מתכונים.");
+  listRecipes.mockResolvedValue([recipe("r1", "מרק עדשים")]);
+  await userEvent.click(screen.getByRole("button", { name: "נסו שוב" }));
+  expect(await screen.findByRole("link", { name: /מרק עדשים/ })).toBeInTheDocument();
+});
+
+test("load error while offline says there is no connection", async () => {
+  const spy = vi.spyOn(navigator, "onLine", "get").mockReturnValue(false);
+  try {
+    listRecipes.mockRejectedValue(new TypeError("Failed to fetch"));
+    renderWithProviders(<FeedPage />);
+    expect(await screen.findByRole("alert")).toHaveTextContent("אין חיבור לאינטרנט");
+  } finally {
+    spy.mockRestore();
+  }
 });

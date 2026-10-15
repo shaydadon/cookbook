@@ -15,6 +15,7 @@ const originalNotification = globalThis.Notification;
 
 beforeEach(() => {
   localStorage.clear();
+  sessionStorage.clear();
   subscribePush.mockReset();
   subscribePush.mockResolvedValue(undefined);
   // @ts-expect-error jsdom has no Notification
@@ -70,4 +71,28 @@ test("already granted: subscribes silently on mount without asking", async () =>
   renderWithProviders(<PushPrompt />);
   await waitFor(() => expect(subscribePush).toHaveBeenCalledWith("BKey"));
   expect(Notification.requestPermission).not.toHaveBeenCalled();
+});
+
+test("silent re-subscribe happens at most once per session", async () => {
+  // @ts-expect-error test stub
+  globalThis.Notification.permission = "granted";
+  const { unmount } = renderWithProviders(<PushPrompt />);
+  await waitFor(() => expect(subscribePush).toHaveBeenCalledTimes(1));
+  unmount();
+  renderWithProviders(<PushPrompt />);
+  await new Promise((r) => setTimeout(r, 20));
+  expect(subscribePush).toHaveBeenCalledTimes(1);
+});
+
+test("silent re-subscribe is skipped (no crash) when sessionStorage throws", async () => {
+  // @ts-expect-error test stub
+  globalThis.Notification.permission = "granted";
+  const spy = vi.spyOn(Storage.prototype, "getItem").mockImplementation(() => { throw new Error("blocked"); });
+  try {
+    renderWithProviders(<PushPrompt />);
+    await new Promise((r) => setTimeout(r, 20));
+    expect(subscribePush).not.toHaveBeenCalled();
+  } finally {
+    spy.mockRestore();
+  }
 });

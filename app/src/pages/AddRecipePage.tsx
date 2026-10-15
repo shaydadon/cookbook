@@ -17,6 +17,7 @@ export default function AddRecipePage() {
     e.preventDefault();
     setError(null);
     if (!extractFirstUrl(url)) return setError("לא נמצא קישור. הדביקו קישור שמתחיל ב-https://");
+    if (!navigator.onLine) return setError("אין חיבור לאינטרנט"); // keep the link in the form for later
     setBusy(true);
     try {
       const res = await ingestLink([note.trim(), url.trim()].filter(Boolean).join("\n"));
@@ -25,7 +26,7 @@ export default function AddRecipePage() {
       setUrl("");
       setNote("");
     } catch {
-      setError("משהו השתבש. נסו שוב בעוד רגע.");
+      setError(navigator.onLine ? "משהו השתבש. נסו שוב בעוד רגע." : "אין חיבור לאינטרנט");
     } finally {
       setBusy(false);
     }
@@ -33,7 +34,7 @@ export default function AddRecipePage() {
 
   return (
     <div className="flex flex-col gap-4 pt-2">
-      <h2 className="text-lg font-bold">הוספת מתכון</h2>
+      <h1 className="text-lg font-bold">הוספת מתכון</h1>
       <form onSubmit={submit} className="flex flex-col gap-3">
         <label htmlFor="url" className="font-medium">קישור למתכון</label>
         <input id="url" dir="ltr" inputMode="url" autoCapitalize="none" autoCorrect="off" spellCheck={false} value={url} onChange={(e) => setUrl(e.target.value)}
