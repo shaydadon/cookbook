@@ -1,0 +1,21 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Heebo", system-ui, sans-serif;
+  --color-paper: #fffaf3;
+  --color-ink: #1c1917;
+  --color-muted: #78716c;
+  --color-accent: #c2410c;
+  --color-accent-soft: #ffedd5;
+  --color-line: #e7e5e4;
+}
+
+html, body, #root { min-height: 100%; }
+body {
+  background: var(--color-paper);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  -webkit-tap-highlight-color: transparent;
+}
+button, a { touch-action: manipulation; }
+input, textarea, select { font-size: 16px; } /* no iOS zoom on focus */
