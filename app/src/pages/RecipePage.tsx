@@ -17,12 +17,12 @@ export default function RecipePage() {
   if (recipe.isPending) return <p role="status" className="py-8 text-center text-muted">טוען…</p>;
   if (recipe.isError) {
     if ((recipe.error as { code?: string } | null)?.code === "PGRST116") {
-      return <p role="alert" className="py-8 text-center text-red-700">המתכון לא נמצא.</p>;
+      return <p role="alert" className="py-8 text-center text-danger">המתכון לא נמצא.</p>;
     }
     return (
-      <div role="alert" className="flex flex-col items-center gap-3 py-8 text-center text-red-700">
+      <div role="alert" className="flex flex-col items-center gap-3 py-8 text-center text-danger">
         <p>לא הצלחנו לטעון את המתכון</p>
-        <button type="button" onClick={() => recipe.refetch()} className="min-h-11 rounded-full bg-accent px-6 font-medium text-white">
+        <button type="button" onClick={() => recipe.refetch()} className="min-h-11 rounded-full bg-accent px-6 font-medium text-on-accent">
           נסו שוב
         </button>
       </div>
@@ -52,14 +52,14 @@ export default function RecipePage() {
         <h1 className="text-2xl font-bold leading-tight">{r.title}</h1>
         {r.description && <p className="text-muted">{r.description}</p>}
         <div className="flex flex-wrap gap-2 text-sm">
-          {total ? <span className="rounded-full bg-white px-3 py-1">{formatMinutes(total)}</span> : null}
-          {r.servings ? <span className="rounded-full bg-white px-3 py-1">{r.servings} מנות</span> : null}
-          {r.category && <span className="rounded-full bg-white px-3 py-1">{r.category}</span>}
+          {total ? <span className="rounded-full bg-surface px-3 py-1">{formatMinutes(total)}</span> : null}
+          {r.servings ? <span className="rounded-full bg-surface px-3 py-1">{r.servings} מנות</span> : null}
+          {r.category && <span className="rounded-full bg-surface px-3 py-1">{r.category}</span>}
           {r.tags.map((t) => <span key={t} className="rounded-full bg-accent-soft px-3 py-1">{t}</span>)}
         </div>
       </header>
 
-      <Link to={`/recipe/${r.id}/cook`} className="grid min-h-12 place-items-center rounded-full bg-accent font-medium text-white">
+      <Link to={`/recipe/${r.id}/cook`} className="grid min-h-12 place-items-center rounded-full bg-accent font-medium text-on-accent">
         התחילו לבשל
       </Link>
 

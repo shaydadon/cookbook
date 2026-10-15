@@ -10,7 +10,7 @@ export function RequireMember() {
       <main className="mx-auto max-w-md p-6 text-center">
         <h1 className="mb-3 text-xl font-bold">{error}</h1>
         <div className="flex justify-center gap-3">
-          <button className="min-h-11 rounded-full bg-accent px-5 text-white" onClick={() => retry()}>נסו שוב</button>
+          <button className="min-h-11 rounded-full bg-accent px-5 text-on-accent" onClick={() => retry()}>נסו שוב</button>
           <button className="min-h-11 rounded-full border border-line px-5" onClick={() => signOut()}>התנתקות</button>
         </div>
       </main>

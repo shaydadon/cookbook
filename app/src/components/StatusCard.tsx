@@ -57,10 +57,10 @@ export function StatusCard({ recipeId, initialStatus, duplicate }: {
 
   const done = status === "published";
   return (
-    <div className="flex flex-col gap-1 rounded-2xl bg-white p-4 shadow-sm" aria-live="polite">
+    <div className="flex flex-col gap-1 rounded-2xl bg-surface p-4 shadow-sm" aria-live="polite">
       {duplicate && <p className="text-sm text-muted">המתכון הזה כבר קיים — רשמנו שגם את/ה שיתפת.</p>}
       <p className="font-medium">{title ?? "מתכון חדש"}</p>
-      <p className={done ? "text-green-700" : status === "failed" || status === "needs_review" ? "text-red-700" : "text-muted"}>
+      <p className={done ? "text-success" : status === "failed" || status === "needs_review" ? "text-danger" : "text-muted"}>
         {STATUS_LABEL[status]}
       </p>
       {done && <Link to={`/recipe/${recipeId}`} className="inline-flex min-h-11 items-center self-start text-accent underline">לצפייה במתכון</Link>}

@@ -54,9 +54,9 @@ export default function FeedPage({ favoritesOnly = false }: { favoritesOnly?: bo
       <CategoryChips value={category} onChange={(v) => update("cat", v)} />
       {query.isPending && <p role="status" className="py-8 text-center text-muted">טוען…</p>}
       {query.isError && (
-        <div role="alert" className="flex flex-col items-center gap-3 py-8 text-center text-red-700">
+        <div role="alert" className="flex flex-col items-center gap-3 py-8 text-center text-danger">
           <p>{navigator.onLine ? "לא הצלחנו לטעון מתכונים." : "אין חיבור לאינטרנט"}</p>
-          <button type="button" onClick={() => query.refetch()} className="min-h-11 rounded-full bg-accent px-6 font-medium text-white">
+          <button type="button" onClick={() => query.refetch()} className="min-h-11 rounded-full bg-accent px-6 font-medium text-on-accent">
             נסו שוב
           </button>
         </div>

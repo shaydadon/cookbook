@@ -99,12 +99,12 @@ export function EditRecipe() {
     }
   }
 
-  const field = "rounded-xl border border-line bg-white p-3";
+  const field = "rounded-xl border border-line bg-surface p-3";
   return (
     <div className="flex flex-col gap-3">
       <label htmlFor="edit-id" className="font-medium">מזהה מתכון (מהכתובת /recipe/…)</label>
       <input id="edit-id" dir="ltr" value={input} onChange={(e) => setInput(e.target.value.trim())} className={field} />
-      {recipe.isError && <p role="alert" className="text-red-700">המתכון לא נמצא.</p>}
+      {recipe.isError && <p role="alert" className="text-danger">המתכון לא נמצא.</p>}
       {recipe.data && (
         <form onSubmit={save} className="flex flex-col gap-2">
           <p className="text-sm text-muted">סטטוס: {STATUS_LABEL[recipe.data.status]}</p>
@@ -123,20 +123,20 @@ export function EditRecipe() {
             onChange={(e) => setForm({ ...form, ingredients: e.target.value })} className={field} />
           <textarea aria-label="שלבים (שורה לכל שלב)" rows={8} value={form.steps} onChange={(e) => setForm({ ...form, steps: e.target.value })} className={field} />
           <div className="flex gap-2">
-            <button disabled={!editable} className="min-h-11 flex-1 rounded-full bg-accent text-white disabled:opacity-60">שמירה</button>
+            <button disabled={!editable} className="min-h-11 flex-1 rounded-full bg-accent text-on-accent disabled:opacity-60">שמירה</button>
             <button type="button" disabled={recipe.data.status !== "published"} onClick={regenerateImage}
               className="min-h-11 rounded-full border border-line px-4 disabled:opacity-60">
               תמונה חדשה
             </button>
           </div>
           <button type="button" disabled={!editable || busy} onClick={remove}
-            className="min-h-11 rounded-full border border-red-700 px-4 text-red-700 disabled:opacity-60">
+            className="min-h-11 rounded-full border border-red-700 px-4 text-danger disabled:opacity-60">
             מחיקה
           </button>
         </form>
       )}
-      {msg && <p role="status" className="text-green-700">{msg}</p>}
-      {err && <p role="alert" className="text-red-700">{err}</p>}
+      {msg && <p role="status" className="text-success">{msg}</p>}
+      {err && <p role="alert" className="text-danger">{err}</p>}
     </div>
   );
 }

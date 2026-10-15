@@ -11,12 +11,12 @@ export default function CookingPage() {
   if (recipe.isPending) return <p role="status" className="p-8 text-center text-muted">טוען…</p>;
   if (recipe.isError) {
     if ((recipe.error as { code?: string } | null)?.code === "PGRST116") {
-      return <p role="alert" className="p-8 text-center text-red-700">המתכון לא נמצא.</p>;
+      return <p role="alert" className="p-8 text-center text-danger">המתכון לא נמצא.</p>;
     }
     return (
-      <div role="alert" className="flex flex-col items-center gap-3 p-8 text-center text-red-700">
+      <div role="alert" className="flex flex-col items-center gap-3 p-8 text-center text-danger">
         <p>לא הצלחנו לטעון את המתכון</p>
-        <button type="button" onClick={() => recipe.refetch()} className="min-h-11 rounded-full bg-accent px-6 font-medium text-white">
+        <button type="button" onClick={() => recipe.refetch()} className="min-h-11 rounded-full bg-accent px-6 font-medium text-on-accent">
           נסו שוב
         </button>
       </div>

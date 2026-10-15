@@ -15,7 +15,7 @@ export function Layout() {
       <main className="flex-1 px-4 pb-24">
         <Outlet />
       </main>
-      <nav className="fixed inset-x-0 bottom-0 z-10 flex border-t border-line bg-white pb-[env(safe-area-inset-bottom)]">
+      <nav className="fixed inset-x-0 bottom-0 z-10 flex border-t border-line bg-surface pb-[env(safe-area-inset-bottom)]">
         <NavLink to="/" end className={tab}>בית</NavLink>
         <NavLink to="/favorites" className={tab}>מועדפים</NavLink>
         <NavLink to="/add" className={tab}>הוספה</NavLink>

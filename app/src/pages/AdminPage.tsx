@@ -23,7 +23,7 @@ export default function AdminPage() {
         {TABS.map((t) => (
           <button key={t.key} role="tab" id={`tab-${t.key}`} aria-controls={`panel-${t.key}`} aria-selected={tab === t.key}
             onClick={() => setTab(t.key)}
-            className={`min-h-11 shrink-0 rounded-full px-4 ${tab === t.key ? "bg-ink text-white" : "border border-line bg-white"}`}>
+            className={`min-h-11 shrink-0 rounded-full px-4 ${tab === t.key ? "bg-ink text-bg" : "border border-line bg-surface"}`}>
             {t.label}
           </button>
         ))}

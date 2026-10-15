@@ -61,10 +61,10 @@ export function PushPrompt() {
     <div className="flex flex-col gap-2 rounded-2xl bg-accent-soft p-4">
       <p className="font-medium">לקבל התראה כשמתכון חדש מגיע?</p>
       <div className="flex gap-2">
-        <button disabled={busy} className="min-h-11 flex-1 rounded-full bg-accent text-white disabled:opacity-60" onClick={accept}>כן, תודיעו לי</button>
-        <button className="min-h-11 rounded-full border border-line bg-white px-4" onClick={dismiss}>לא עכשיו</button>
+        <button disabled={busy} className="min-h-11 flex-1 rounded-full bg-accent text-on-accent disabled:opacity-60" onClick={accept}>כן, תודיעו לי</button>
+        <button className="min-h-11 rounded-full border border-line bg-surface px-4" onClick={dismiss}>לא עכשיו</button>
       </div>
-      {error && <p role="alert" className="text-sm text-red-700">ההרשמה להתראות נכשלה.</p>}
+      {error && <p role="alert" className="text-sm text-danger">ההרשמה להתראות נכשלה.</p>}
     </div>
   );
 }

@@ -8,7 +8,7 @@ export function IosInstallHint() {
   });
   if (!show) return null;
   return (
-    <div className="flex items-start gap-3 rounded-2xl bg-white p-4 shadow-sm">
+    <div className="flex items-start gap-3 rounded-2xl bg-surface p-4 shadow-sm">
       <p className="flex-1 text-sm">
         באייפון: לחצו על כפתור השיתוף ⬆️ ואז "הוספה למסך הבית" — כך האפליקציה תיפתח במסך מלא ותוכל לשלוח התראות.
       </p>

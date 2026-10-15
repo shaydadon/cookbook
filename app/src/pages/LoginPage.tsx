@@ -45,16 +45,16 @@ export default function LoginPage() {
             <label htmlFor="email" className="font-medium">אימייל</label>
             <input id="email" type="email" required autoComplete="email" dir="ltr" value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="min-h-12 rounded-xl border border-line bg-white px-4" />
-            <button disabled={busy} className="min-h-12 rounded-full bg-accent font-medium text-white disabled:opacity-60">
+              className="min-h-12 rounded-xl border border-line bg-surface px-4" />
+            <button disabled={busy} className="min-h-12 rounded-full bg-accent font-medium text-on-accent disabled:opacity-60">
               שלחו לי קישור כניסה
             </button>
           </form>
         )}
-      {error && <p role="alert" className="text-center text-red-700">{error}</p>}
+      {error && <p role="alert" className="text-center text-danger">{error}</p>}
       <div className="flex items-center gap-3 text-muted"><hr className="flex-1 border-line" />או<hr className="flex-1 border-line" /></div>
       <button
-        className="min-h-12 rounded-full border border-line bg-white font-medium"
+        className="min-h-12 rounded-full border border-line bg-surface font-medium"
         onClick={async () => {
           setError(null);
           const { error: oErr } = await supabase.auth.signInWithOAuth({

@@ -66,8 +66,8 @@ export function CookingMode({ title, steps, ingredients, onExit }: {
       </div>
       <nav className="flex gap-3 p-4">
         {idx < last
-          ? <button onClick={next} className="min-h-14 flex-1 rounded-full bg-accent text-lg font-medium text-white">הבא</button>
-          : <button onClick={onExit} className="min-h-14 flex-1 rounded-full bg-accent text-lg font-medium text-white">סיימתי</button>}
+          ? <button onClick={next} className="min-h-14 flex-1 rounded-full bg-accent text-lg font-medium text-on-accent">הבא</button>
+          : <button onClick={onExit} className="min-h-14 flex-1 rounded-full bg-accent text-lg font-medium text-on-accent">סיימתי</button>}
         <button onClick={prev} disabled={idx === 0} className="min-h-14 flex-1 rounded-full border border-line text-lg disabled:opacity-40">הקודם</button>
       </nav>
     </div>

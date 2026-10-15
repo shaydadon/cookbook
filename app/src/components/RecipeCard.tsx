@@ -10,7 +10,7 @@ export function RecipeCard({ recipe, isFavorite, onToggleFavorite }: {
   const total = totalMinutes(recipe);
   return (
     // The favourite button is a sibling of the link (no interactive element nested inside <a>).
-    <div className="relative overflow-hidden rounded-2xl bg-white shadow-sm">
+    <div className="relative overflow-hidden rounded-2xl bg-surface shadow-sm">
       <Link to={`/recipe/${recipe.id}`} className="block">
         <div className="aspect-square bg-accent-soft">
           {img

@@ -9,7 +9,7 @@ export function FavoriteButton({ active, onClick }: { active: boolean; onClick()
         e.stopPropagation();
         onClick();
       }}
-      className="grid size-11 place-items-center rounded-full bg-white/90 text-xl shadow-sm"
+      className="grid size-11 place-items-center rounded-full bg-surface/90 text-xl shadow-sm"
     >
       {active ? "❤️" : "🤍"}
     </button>

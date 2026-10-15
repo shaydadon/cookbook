@@ -9,6 +9,7 @@ import App from "./App";
 import { AuthProvider } from "./auth/AuthProvider";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import "./index.css";
+import { ThemeProvider } from "./theme/ThemeProvider";
 import { registerSW } from "virtual:pwa-register";
 
 registerSW({ immediate: true });
@@ -32,13 +33,15 @@ const queryClient = new QueryClient({ defaultOptions: { queries: { staleTime: 60
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <ErrorBoundary>
-      <QueryClientProvider client={queryClient}>
-        <AuthProvider>
-          <BrowserRouter>
-            <App />
-          </BrowserRouter>
-        </AuthProvider>
-      </QueryClientProvider>
+      <ThemeProvider>
+        <QueryClientProvider client={queryClient}>
+          <AuthProvider>
+            <BrowserRouter>
+              <App />
+            </BrowserRouter>
+          </AuthProvider>
+        </QueryClientProvider>
+      </ThemeProvider>
     </ErrorBoundary>
   </StrictMode>,
 );

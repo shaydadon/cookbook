@@ -1,21 +1,91 @@
 @import "tailwindcss";
 
-@theme {
-  --font-sans: "Heebo", system-ui, sans-serif;
-  --color-paper: #fffaf3;
-  --color-ink: #1c1917;
-  --color-muted: #78716c;
-  --color-accent: #c2410c;
-  --color-accent-soft: #ffedd5;
-  --color-line: #e7e5e4;
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
+:root {
+  --bg: #F2F2F7;
+  --surface: #FFFFFF;
+  --fill: rgba(118, 118, 128, 0.12);
+  --bar: rgba(249, 249, 249, 0.82);
+  --line: rgba(60, 60, 67, 0.18);
+  --text: #000000;
+  --text-2: #8E8E93;
+  --accent: #FF9500;
+  --accent-soft: #FFF4E5;
+  --on-accent: #FFFFFF;
+  --danger: #FF3B30;
+  --success: #34C759;
+  --backdrop: #E5E5EA;
+  --card-border: transparent;
+  --card-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
 }
 
-html, body, #root { min-height: 100%; }
+[data-theme="dark"] {
+  --bg: #1E242C;
+  --surface: #283039;
+  --fill: #323B46;
+  --bar: rgba(34, 41, 49, 0.88);
+  --line: rgba(255, 255, 255, 0.06);
+  --text: #E4E8EE;
+  --text-2: #8D97A5;
+  --accent: #FF9500;
+  --accent-soft: rgba(255, 149, 0, 0.16);
+  --on-accent: #1B1206;
+  --danger: #FF6961;
+  --success: #30D158;
+  --backdrop: #151A20;
+  --card-border: rgba(255, 255, 255, 0.06);
+  --card-shadow: none;
+}
+
+@theme inline {
+  --font-sans: "Heebo", -apple-system, "SF Pro Text", system-ui, sans-serif;
+  --color-bg: var(--bg);
+  --color-paper: var(--bg); /* legacy alias */
+  --color-surface: var(--surface);
+  --color-fill: var(--fill);
+  --color-bar: var(--bar);
+  --color-line: var(--line);
+  --color-ink: var(--text);
+  --color-muted: var(--text-2);
+  --color-accent: var(--accent);
+  --color-accent-soft: var(--accent-soft);
+  --color-on-accent: var(--on-accent);
+  --color-danger: var(--danger);
+  --color-success: var(--success);
+}
+
+@utility card {
+  background: var(--surface);
+  border: 1px solid var(--card-border);
+  box-shadow: var(--card-shadow);
+}
+
+@utility frost {
+  background: var(--bar);
+  -webkit-backdrop-filter: saturate(180%) blur(20px);
+  backdrop-filter: saturate(180%) blur(20px);
+}
+
+@utility pressable {
+  transition: transform 120ms ease, opacity 120ms ease;
+  &:active { transform: scale(0.97); opacity: 0.85; }
+}
+
+html, body, #root { height: 100%; }
 body {
-  background: var(--color-paper);
-  color: var(--color-ink);
+  margin: 0;
+  background: var(--backdrop);
+  color: var(--text);
   font-family: var(--font-sans);
   -webkit-tap-highlight-color: transparent;
+  -webkit-font-smoothing: antialiased;
 }
 button, a { touch-action: manipulation; }
+button, [role="tab"], [role="radio"] { user-select: none; -webkit-user-select: none; }
 input, textarea, select { font-size: 16px; } /* no iOS zoom on focus */
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+}

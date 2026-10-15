@@ -7,7 +7,7 @@ export function SearchBar({ value, onChange }: { value: string; onChange(v: stri
       aria-label="חיפוש"
       value={value}
       onChange={(e) => onChange(e.target.value)}
-      className="min-h-12 w-full rounded-full border border-line bg-white px-5"
+      className="min-h-12 w-full rounded-full border border-line bg-surface px-5"
     />
   );
 }
