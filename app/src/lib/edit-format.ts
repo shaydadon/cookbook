@@ -14,7 +14,12 @@ export function ingredientsToText(list: Ingredient[]): string {
   return lines.join("\n");
 }
 
-export function textToIngredients(text: string): Ingredient[] {
+/**
+ * Parses the editor text. With `original`, a line that still reads exactly like an original ingredient of the
+ * same group reuses that ingredient object (keeping amount/unit/note structure); each original is reused once.
+ */
+export function textToIngredients(text: string, original: Ingredient[] = []): Ingredient[] {
+  const pool = [...original];
   let group: string | null = null;
   const out: Ingredient[] = [];
   for (const raw of text.split("\n")) {
@@ -24,7 +29,13 @@ export function textToIngredients(text: string): Ingredient[] {
       group = line.slice(1).trim() || null;
       continue;
     }
-    out.push({ group, name: line, amount: null, unit: null, note: null });
+    const k = pool.findIndex((o) => o.group === group && formatIngredient(o) === line);
+    if (k >= 0) {
+      out.push(pool[k]);
+      pool.splice(k, 1);
+    } else {
+      out.push({ group, name: line, amount: null, unit: null, note: null });
+    }
   }
   return out;
 }

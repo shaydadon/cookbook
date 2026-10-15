@@ -36,8 +36,18 @@ function Item({ recipe }: { recipe: Recipe }) {
 }
 
 export function ReviewQueue() {
-  const { data, isPending } = useQuery({ queryKey: ["review-queue"], queryFn: listReviewQueue });
+  const { data, isPending, isError, refetch } = useQuery({ queryKey: ["review-queue"], queryFn: listReviewQueue });
   if (isPending) return <p role="status" className="text-muted">טוען…</p>;
+  if (isError) {
+    return (
+      <div role="alert" className="flex flex-col items-center gap-3 py-8 text-center text-red-700">
+        <p>לא הצלחנו לטעון את רשימת המתכונים לטיפול</p>
+        <button type="button" onClick={() => refetch()} className="min-h-11 rounded-full bg-accent px-6 font-medium text-white">
+          נסו שוב
+        </button>
+      </div>
+    );
+  }
   if (!data?.length) return <p className="py-8 text-center text-muted">אין מתכונים שמחכים לטיפול 🎉</p>;
   return <ul className="flex flex-col gap-3">{data.map((r) => <Item key={r.id} recipe={r} />)}</ul>;
 }

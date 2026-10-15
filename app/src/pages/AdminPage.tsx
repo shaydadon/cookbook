@@ -18,6 +18,7 @@ export default function AdminPage() {
   if (member?.role !== "admin") return <p className="py-8 text-center">אין הרשאה.</p>;
   return (
     <div className="flex flex-col gap-4 pt-2">
+      <h1 className="text-lg font-bold">ניהול</h1>
       <div role="tablist" className="flex gap-2 overflow-x-auto">
         {TABS.map((t) => (
           <button key={t.key} role="tab" id={`tab-${t.key}`} aria-controls={`panel-${t.key}`} aria-selected={tab === t.key}

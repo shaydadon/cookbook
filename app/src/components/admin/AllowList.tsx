@@ -42,6 +42,13 @@ export function AllowList() {
         <button className="min-h-11 rounded-full bg-accent text-white">הוספה לרשימה</button>
         {add.isError && <p role="alert" className="text-sm text-red-700">לא נוסף (אולי כבר ברשימה?)</p>}
       </form>
+      {list.isError && (
+        <div role="alert" className="flex items-center justify-between gap-2 text-sm text-red-700">
+          <p>לא הצלחנו לטעון את הרשימה</p>
+          <button type="button" onClick={() => list.refetch()} className="min-h-11 rounded-full border border-line px-4">נסו שוב</button>
+        </div>
+      )}
+      {remove.isError && <p role="alert" className="text-sm text-red-700">ההסרה נכשלה. נסו שוב.</p>}
       <ul className="flex flex-col divide-y divide-line rounded-2xl bg-white">
         {list.data?.map((a) => (
           <li key={a.email} className="flex items-center justify-between gap-2 p-3">
