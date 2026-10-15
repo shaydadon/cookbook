@@ -2,6 +2,7 @@
 import { createClient } from "@supabase/supabase-js";
 import { expect, type Page, test } from "@playwright/test";
 import { E2E_ADMIN, E2E_MEMBER, localSupabase, SEEDED_RECIPE_ID } from "./local";
+import { login as loginWithLink } from "./login";
 
 const sb = localSupabase();
 const admin = createClient(sb.url, sb.serviceKey, { auth: { persistSession: false } });
@@ -17,14 +18,7 @@ test.afterAll(async () => {
   }
 });
 
-async function login(page: Page, email: string) {
-  const { data, error } = await admin.auth.admin.generateLink({
-    type: "magiclink", email, options: { redirectTo: "http://localhost:5173/" },
-  });
-  if (error) throw error;
-  await page.goto(data.properties.action_link);
-  await expect(page.getByRole("navigation")).toBeVisible();
-}
+const login = (page: Page, email: string) => loginWithLink(admin, page, email);
 
 test("member: feed, search, recipe, cooking mode, favourite", async ({ page }) => {
   await login(page, E2E_MEMBER);

@@ -11,3 +11,7 @@ export function localSupabase(): { url: string; anonKey: string; serviceKey: str
 export const E2E_MEMBER = "e2e-member@test.local";
 export const E2E_ADMIN = "e2e-admin@test.local";
 export const SEEDED_RECIPE_ID = "00000000-0000-4000-8000-0000000e2e01";
+
+export const DEV_ORIGIN = "http://localhost:5173";
+/** `vite preview` of the production build (the only place the service worker is registered). */
+export const PREVIEW_ORIGIN = "http://localhost:4173";
