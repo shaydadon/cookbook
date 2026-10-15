@@ -1,7 +1,10 @@
 import { execSync } from "node:child_process";
+import { fileURLToPath } from "node:url";
+
+const REPO_ROOT = fileURLToPath(new URL("../..", import.meta.url));
 
 export function localSupabase(): { url: string; anonKey: string; serviceKey: string } {
-  const s = JSON.parse(execSync("npx supabase status -o json", { cwd: "..", encoding: "utf8" }));
+  const s = JSON.parse(execSync("npx supabase status -o json", { cwd: REPO_ROOT, encoding: "utf8" }));
   return { url: s.API_URL, anonKey: s.ANON_KEY ?? s.PUBLISHABLE_KEY, serviceKey: s.SERVICE_ROLE_KEY ?? s.SECRET_KEY };
 }
 

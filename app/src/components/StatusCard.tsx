@@ -5,6 +5,10 @@ import { STATUS_LABEL } from "../lib/status";
 import { supabase } from "../lib/supabase";
 import type { RecipeStatus } from "../lib/types";
 
+const TERMINAL: RecipeStatus[] = ["published", "failed", "needs_review"];
+const POLL_MS = 5000;
+const POLL_MAX_MS = 3 * 60 * 1000;
+
 export function StatusCard({ recipeId, initialStatus, duplicate }: {
   recipeId: string; initialStatus: RecipeStatus; duplicate: boolean;
 }) {
@@ -12,29 +16,43 @@ export function StatusCard({ recipeId, initialStatus, duplicate }: {
   const [title, setTitle] = useState<string | null>(null);
 
   useEffect(() => {
-    // Once a Realtime payload has been applied, a slower initial fetch must not overwrite it.
-    let realtimeApplied = false;
+    // Every fetch and every Realtime payload takes a sequence number; only the newest result is applied.
+    let seq = 0;
     let active = true;
+    let poll: ReturnType<typeof setInterval> | undefined;
+    const stopPoll = () => { if (poll) { clearInterval(poll); poll = undefined; } };
+    const apply = (st: RecipeStatus, t: string | null) => {
+      setStatus(st);
+      setTitle(t);
+      if (TERMINAL.includes(st)) stopPoll();
+    };
     const refetch = () => {
+      const my = ++seq;
       getRecipe(recipeId)
-        .then((r) => {
-          if (!active || realtimeApplied) return;
-          setStatus(r.status);
-          setTitle(r.title);
-        })
+        .then((r) => { if (active && my === seq) apply(r.status, r.title); })
         .catch(() => {});
     };
     refetch();
+    // Backstop: Realtime can drop UPDATEs that land before postgres_changes is actually live.
+    const startedAt = Date.now();
+    poll = setInterval(() => {
+      if (Date.now() - startedAt >= POLL_MAX_MS) { stopPoll(); return; }
+      refetch();
+    }, POLL_MS);
     const channel = supabase.channel(`recipe-${recipeId}-${crypto.randomUUID()}`)
       .on("postgres_changes", { event: "UPDATE", schema: "public", table: "recipes", filter: `id=eq.${recipeId}` },
         (payload) => {
           const row = payload.new as { status: RecipeStatus; title: string | null };
-          realtimeApplied = true;
-          setStatus(row.status);
-          setTitle(row.title);
+          seq++;
+          apply(row.status, row.title);
         })
-      .subscribe((s) => { if (s === "SUBSCRIBED") refetch(); });
-    return () => { active = false; supabase.removeChannel(channel); };
+      .on("system", {}, (p: { extension?: string; status?: string }) => {
+        if (p?.extension === "postgres_changes" && p?.status === "ok") refetch();
+      })
+      .subscribe((s) => {
+        if (s === "SUBSCRIBED" || s === "CHANNEL_ERROR" || s === "TIMED_OUT" || s === "CLOSED") refetch();
+      });
+    return () => { active = false; stopPoll(); supabase.removeChannel(channel); };
   }, [recipeId]);
 
   const done = status === "published";

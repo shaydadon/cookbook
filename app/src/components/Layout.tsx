@@ -10,7 +10,7 @@ export function Layout() {
   return (
     <div className="mx-auto flex min-h-dvh max-w-3xl flex-col">
       <header className="sticky top-0 z-10 bg-paper/95 px-4 pb-2 pt-[max(0.75rem,env(safe-area-inset-top))] backdrop-blur">
-        <h1 className="text-xl font-bold">{APP_NAME}</h1>
+        <p className="text-xl font-bold">{APP_NAME}</p>
       </header>
       <main className="flex-1 px-4 pb-24">
         <Outlet />

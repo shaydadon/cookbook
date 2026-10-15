@@ -15,7 +15,7 @@ const h = vi.hoisted(() => ({
 
 vi.mock("../lib/supabase", () => {
   const channel = {
-    on: (_t: string, _f: unknown, fn: Handler) => { h.handler = fn; return channel; },
+    on: (t: string, _f: unknown, fn: Handler) => { if (t === "postgres_changes") h.handler = fn; return channel; },
     subscribe: (cb?: SubCb) => { h.subCb = cb ?? null; return channel; },
   };
   return { supabase: { channel: () => channel, removeChannel: h.removeChannel } };
@@ -56,6 +56,55 @@ test("SUBSCRIBED triggers a refetch that is applied when no realtime payload arr
   expect(h.getRecipe).toHaveBeenCalledTimes(2);
   expect(screen.getByText(STATUS_LABEL.published)).toBeInTheDocument();
   expect(screen.getByText("פשטידה")).toBeInTheDocument();
+});
+
+test("polling catches a status change when the channel never delivers payloads", async () => {
+  vi.useFakeTimers();
+  try {
+    h.getRecipe
+      .mockResolvedValueOnce({ status: "queued", title: null })
+      .mockResolvedValueOnce({ status: "queued", title: null })
+      .mockResolvedValue({ status: "published", title: "לזניה" });
+    card();
+    await act(async () => { h.subCb!("SUBSCRIBED"); });
+    expect(screen.queryByText(STATUS_LABEL.published)).not.toBeInTheDocument();
+
+    await act(async () => { await vi.advanceTimersByTimeAsync(5000); });
+    expect(screen.getByText(STATUS_LABEL.published)).toBeInTheDocument();
+    expect(screen.getByText("לזניה")).toBeInTheDocument();
+  } finally {
+    vi.useRealTimers();
+  }
+});
+
+test("a stale fetch resolving after a newer fetch does not overwrite it", async () => {
+  let resolveFirst!: (r: { status: string; title: string | null }) => void;
+  h.getRecipe
+    .mockReturnValueOnce(new Promise((res) => { resolveFirst = res; }))
+    .mockResolvedValueOnce({ status: "published", title: "חדש" });
+  card();
+  await act(async () => { h.subCb!("SUBSCRIBED"); });
+  expect(screen.getByText("חדש")).toBeInTheDocument();
+
+  await act(async () => { resolveFirst({ status: "queued", title: "ישן" }); });
+  expect(screen.getByText("חדש")).toBeInTheDocument();
+  expect(screen.getByText(STATUS_LABEL.published)).toBeInTheDocument();
+});
+
+test("polling stops after a terminal status", async () => {
+  vi.useFakeTimers();
+  try {
+    h.getRecipe.mockResolvedValue({ status: "published", title: "פיצה" });
+    card();
+    await act(async () => {});
+    expect(screen.getByText(STATUS_LABEL.published)).toBeInTheDocument();
+    const calls = h.getRecipe.mock.calls.length;
+
+    await act(async () => { await vi.advanceTimersByTimeAsync(10_000); });
+    expect(h.getRecipe).toHaveBeenCalledTimes(calls);
+  } finally {
+    vi.useRealTimers();
+  }
 });
 
 test("unmount removes the channel", () => {

@@ -6,6 +6,17 @@ import { E2E_ADMIN, E2E_MEMBER, localSupabase, SEEDED_RECIPE_ID } from "./local"
 const sb = localSupabase();
 const admin = createClient(sb.url, sb.serviceKey, { auth: { persistSession: false } });
 
+test.afterAll(async () => {
+  // Remove rows created by the share-target, admin-retry and non-member tests.
+  await admin.from("recipes").delete().like("source_url", "http://host.docker.internal:5199/omelette-%");
+  await admin.from("recipes").delete().like("source_url", "https://e2e.test/broken-%");
+  await admin.from("allowed_emails").delete().like("email", "outsider-%@test.local");
+  const { data } = await admin.auth.admin.listUsers({ perPage: 1000 });
+  for (const u of data?.users ?? []) {
+    if (u.email && /^outsider-.*@test\.local$/.test(u.email)) await admin.auth.admin.deleteUser(u.id);
+  }
+});
+
 async function login(page: Page, email: string) {
   const { data, error } = await admin.auth.admin.generateLink({
     type: "magiclink", email, options: { redirectTo: "http://localhost:5173/" },
@@ -20,7 +31,7 @@ test("member: feed, search, recipe, cooking mode, favourite", async ({ page }) =
   await expect(page.locator("html")).toHaveAttribute("dir", "rtl");
   await page.getByRole("searchbox").fill("עגבניות");
   await page.getByRole("link", { name: /שקשוקה של בדיקה/ }).click();
-  await expect(page.getByRole("heading", { level: 1, name: "שקשוקה של בדיקה" })).toHaveText("שקשוקה של בדיקה");
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("שקשוקה של בדיקה");
   await expect(page.getByText("מקור: e2e.test · שותף ע״י רחל ב-12.10.2026")).toBeVisible();
 
   await page.getByRole("button", { name: "הוספה למועדפים" }).click();
@@ -42,7 +53,7 @@ test("member: share-target link goes all the way to published", async ({ page })
   await page.getByRole("button", { name: "הוספה" }).click();
   await expect(page.getByText("פורסם")).toBeVisible({ timeout: 90_000 });
   await page.getByRole("link", { name: "לצפייה במתכון" }).click();
-  await expect(page.getByRole("heading", { level: 1, name: "מתכון בדיקה" })).toHaveText("מתכון בדיקה"); // AI_FAKE output
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("מתכון בדיקה"); // AI_FAKE output
 });
 
 test("non-member is shown the members-only screen", async ({ page }) => {
