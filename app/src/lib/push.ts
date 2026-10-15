@@ -28,3 +28,16 @@ export function isStandalone(): boolean {
 
 export const shouldShowIosInstallHint = (ua: string, standalone: boolean, maxTouchPoints = 0) =>
   isIos(ua, maxTouchPoints) && !standalone;
+
+export async function getPushSubscription(): Promise<PushSubscription | null> {
+  if (!pushSupported()) return null;
+  const reg = await navigator.serviceWorker.ready;
+  return reg.pushManager.getSubscription();
+}
+
+export async function unsubscribePush(): Promise<void> {
+  const sub = await getPushSubscription();
+  if (!sub) return;
+  await supabase.functions.invoke("push-subscribe", { method: "DELETE", body: { endpoint: sub.endpoint } });
+  await sub.unsubscribe();
+}

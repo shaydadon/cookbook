@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { NavLink, Outlet, useLocation } from "react-router";
 import { useAuth } from "../auth/AuthProvider";
+import { SettingsSheet } from "./SettingsSheet";
 import { HeartIcon, HomeIcon, PlusCircleIcon, ShieldIcon } from "./ui/icons";
 
 export function titleFor(pathname: string): string | null {
@@ -58,7 +59,7 @@ export function Layout() {
         <NavLink to="/add" className={tab}><PlusCircleIcon />הוספה</NavLink>
         {member?.role === "admin" && <NavLink to="/admin" className={tab}><ShieldIcon />ניהול</NavLink>}
       </nav>
-      {settingsOpen && null /* SettingsSheet arrives in Task 4 */}
+      <SettingsSheet open={settingsOpen} onClose={() => setSettingsOpen(false)} />
     </div>
   );
 }
