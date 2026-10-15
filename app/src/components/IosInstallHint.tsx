@@ -4,7 +4,7 @@ import { isStandalone, shouldShowIosInstallHint } from "../lib/push";
 export function IosInstallHint() {
   const [show, setShow] = useState(() => {
     try { if (localStorage.getItem("ios-hint-dismissed") === "1") return false; } catch { /* ignore */ }
-    return shouldShowIosInstallHint(navigator.userAgent, isStandalone());
+    return shouldShowIosInstallHint(navigator.userAgent, isStandalone(), navigator.maxTouchPoints);
   });
   if (!show) return null;
   return (

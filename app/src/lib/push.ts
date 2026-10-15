@@ -18,11 +18,13 @@ export async function subscribePush(vapidKey: string): Promise<void> {
   if (error) throw error;
 }
 
-export const isIos = (ua: string) => /iPhone|iPad|iPod/.test(ua);
+export const isIos = (ua: string, maxTouchPoints = 0) =>
+  /iPhone|iPad|iPod/.test(ua) || (/Macintosh/.test(ua) && maxTouchPoints > 1);
 
 export function isStandalone(): boolean {
   return window.matchMedia?.("(display-mode: standalone)").matches ||
     (navigator as Navigator & { standalone?: boolean }).standalone === true;
 }
 
-export const shouldShowIosInstallHint = (ua: string, standalone: boolean) => isIos(ua) && !standalone;
+export const shouldShowIosInstallHint = (ua: string, standalone: boolean, maxTouchPoints = 0) =>
+  isIos(ua, maxTouchPoints) && !standalone;

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { pushSupported, subscribePush } from "../lib/push";
 
 const KEY = "push-prompt-dismissed";
@@ -12,6 +12,16 @@ export function PushPrompt() {
     () => readDismissed() || !pushSupported() || Notification.permission !== "default" || !import.meta.env.VITE_VAPID_PUBLIC_KEY,
   );
   const [error, setError] = useState(false);
+  const [busy, setBusy] = useState(false);
+
+  // Permission already granted (e.g. earlier session): refresh the subscription silently. Never prompts.
+  useEffect(() => {
+    const key = import.meta.env.VITE_VAPID_PUBLIC_KEY;
+    if (pushSupported() && Notification.permission === "granted" && key) {
+      subscribePush(key).catch(() => { /* ignore */ });
+    }
+  }, []);
+
   if (hidden) return null;
 
   const dismiss = () => {
@@ -19,17 +29,26 @@ export function PushPrompt() {
     setHidden(true);
   };
 
+  const accept = async () => {
+    setBusy(true);
+    setError(false);
+    try {
+      const permission = await Notification.requestPermission();
+      if (permission === "granted") await subscribePush(import.meta.env.VITE_VAPID_PUBLIC_KEY);
+    } catch {
+      setError(true);
+      setBusy(false);
+      return;
+    }
+    setBusy(false);
+    dismiss();
+  };
+
   return (
     <div className="flex flex-col gap-2 rounded-2xl bg-accent-soft p-4">
       <p className="font-medium">לקבל התראה כשמתכון חדש מגיע?</p>
       <div className="flex gap-2">
-        <button className="min-h-11 flex-1 rounded-full bg-accent text-white" onClick={async () => {
-          const permission = await Notification.requestPermission();
-          if (permission === "granted") {
-            try { await subscribePush(import.meta.env.VITE_VAPID_PUBLIC_KEY); } catch { return setError(true); }
-          }
-          dismiss();
-        }}>כן, תודיעו לי</button>
+        <button disabled={busy} className="min-h-11 flex-1 rounded-full bg-accent text-white disabled:opacity-60" onClick={accept}>כן, תודיעו לי</button>
         <button className="min-h-11 rounded-full border border-line bg-white px-4" onClick={dismiss}>לא עכשיו</button>
       </div>
       {error && <p role="alert" className="text-sm text-red-700">ההרשמה להתראות נכשלה.</p>}

@@ -1,6 +1,6 @@
-import { screen } from "@testing-library/react";
+import { screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { beforeEach, expect, test, vi } from "vitest";
+import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import { renderWithProviders } from "../test/render";
 import { PushPrompt } from "./PushPrompt";
 
@@ -11,12 +11,20 @@ vi.mock("../lib/push", async (orig) => ({
   subscribePush: (...a: unknown[]) => subscribePush(...a),
 }));
 
+const originalNotification = globalThis.Notification;
+
 beforeEach(() => {
   localStorage.clear();
-  subscribePush.mockClear();
+  subscribePush.mockReset();
+  subscribePush.mockResolvedValue(undefined);
   // @ts-expect-error jsdom has no Notification
   globalThis.Notification = { permission: "default", requestPermission: vi.fn().mockResolvedValue("granted") };
   vi.stubEnv("VITE_VAPID_PUBLIC_KEY", "BKey");
+});
+
+afterEach(() => {
+  vi.unstubAllEnvs();
+  globalThis.Notification = originalNotification;
 });
 
 test("never asks on load; asks only after tapping yes", async () => {
@@ -40,4 +48,26 @@ test("hidden when permission was already decided", () => {
   globalThis.Notification.permission = "denied";
   renderWithProviders(<PushPrompt />);
   expect(screen.queryByRole("button", { name: "כן, תודיעו לי" })).not.toBeInTheDocument();
+});
+
+test("when subscribing fails the alert shows and the prompt stays", async () => {
+  subscribePush.mockRejectedValue(new Error("boom"));
+  renderWithProviders(<PushPrompt />);
+  await userEvent.click(screen.getByRole("button", { name: "כן, תודיעו לי" }));
+  expect(await screen.findByRole("alert")).toBeInTheDocument();
+  expect(screen.getByRole("button", { name: "כן, תודיעו לי" })).toBeEnabled();
+});
+
+test("hidden when no VAPID key is configured", () => {
+  vi.stubEnv("VITE_VAPID_PUBLIC_KEY", "");
+  renderWithProviders(<PushPrompt />);
+  expect(screen.queryByRole("button", { name: "כן, תודיעו לי" })).not.toBeInTheDocument();
+});
+
+test("already granted: subscribes silently on mount without asking", async () => {
+  // @ts-expect-error test stub
+  globalThis.Notification.permission = "granted";
+  renderWithProviders(<PushPrompt />);
+  await waitFor(() => expect(subscribePush).toHaveBeenCalledWith("BKey"));
+  expect(Notification.requestPermission).not.toHaveBeenCalled();
 });

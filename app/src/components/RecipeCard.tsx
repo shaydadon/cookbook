@@ -14,7 +14,7 @@ export function RecipeCard({ recipe, isFavorite, onToggleFavorite }: {
       <Link to={`/recipe/${recipe.id}`} className="block">
         <div className="aspect-square bg-accent-soft">
           {img
-            ? <img src={img} alt="" loading="lazy" className="size-full object-cover" />
+            ? <img src={img} alt="" crossOrigin="anonymous" loading="lazy" className="size-full object-cover" />
             : <div className="grid size-full place-items-center text-5xl" aria-hidden>🍽️</div>}
         </div>
         <div className="p-3">

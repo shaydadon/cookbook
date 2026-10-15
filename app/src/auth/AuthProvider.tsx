@@ -1,5 +1,6 @@
 import type { Session } from "@supabase/supabase-js";
 import { createContext, type ReactNode, useCallback, useContext, useEffect, useRef, useState } from "react";
+import { clearRecipesApiCache } from "../lib/cache-names";
 import { supabase } from "../lib/supabase";
 import type { Member } from "../lib/types";
 
@@ -83,6 +84,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setSession(s);
         return;
       }
+      // a different user replaces a previous one: drop the offline API cache (not on the very first load)
+      if (userId.current !== null) void clearRecipesApiCache();
       userId.current = s?.user.id ?? null;
       setLoading(true);
       // defer: supabase-js forbids awaiting its own calls inside this callback
@@ -104,6 +107,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     loading, session, member, error, retry,
     signOut: async () => {
       await supabase.auth.signOut();
+      await clearRecipesApiCache();
     },
   };
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

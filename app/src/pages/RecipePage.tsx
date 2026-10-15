@@ -42,7 +42,7 @@ export default function RecipePage() {
   return (
     <article className="flex flex-col gap-5 pt-2">
       <div className="relative -mx-4 aspect-[4/3] bg-accent-soft sm:mx-0 sm:rounded-2xl sm:overflow-hidden">
-        {img ? <img src={img} alt="" className="size-full object-cover" /> : <div className="grid size-full place-items-center text-7xl" aria-hidden>🍽️</div>}
+        {img ? <img src={img} alt="" crossOrigin="anonymous" className="size-full object-cover" /> : <div className="grid size-full place-items-center text-7xl" aria-hidden>🍽️</div>}
         <div className="absolute end-3 top-3">
           <FavoriteButton active={favorites.ids.has(r.id)} onClick={() => favorites.toggle(r.id)} />
         </div>

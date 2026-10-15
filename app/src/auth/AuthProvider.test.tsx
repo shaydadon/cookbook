@@ -54,6 +54,24 @@ beforeEach(() => {
   h.cb = null;
 });
 
+test("signOut clears the recipes-api cache", async () => {
+  const del = vi.fn().mockResolvedValue(true);
+  vi.stubGlobal("caches", { delete: del });
+  try {
+    h.getSession.mockResolvedValue({ data: { session: null } });
+    let out!: () => Promise<void>;
+    function Grab() {
+      out = useAuth().signOut;
+      return null;
+    }
+    render(<AuthProvider><Grab /></AuthProvider>);
+    await act(async () => { await out(); });
+    expect(del).toHaveBeenCalledWith("recipes-api");
+  } finally {
+    vi.unstubAllGlobals();
+  }
+});
+
 test("a members query error sets error, ends loading and keeps member null", async () => {
   h.getSession.mockResolvedValue({ data: { session: sess("u1") } });
   h.maybeSingle.mockResolvedValue({ data: null, error: { message: "boom" } });

@@ -13,7 +13,7 @@ export default defineConfig({
       srcDir: "src",
       filename: "sw.ts",
       registerType: "autoUpdate",
-      injectRegister: "auto",
+      injectRegister: false,
       devOptions: { enabled: false },
       manifest: {
         name: "המתכונים שלנו",
