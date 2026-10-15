@@ -6,9 +6,15 @@ import { renderWithProviders } from "../test/render";
 import RecipePage from "./RecipePage";
 
 let current: Recipe;
+let failWith: unknown = null;
+let getRecipeCalls = 0;
 vi.mock("../lib/recipes", async (orig) => ({
   ...(await orig<typeof import("../lib/recipes")>()),
-  getRecipe: async () => current,
+  getRecipe: async () => {
+    getRecipeCalls++;
+    if (failWith) throw failWith;
+    return current;
+  },
   getShares: async () => [{ id: "s1", recipe_id: "r1", shared_by_name: "רחל", shared_at: "2026-10-12T09:00:00Z", via: "whatsapp" }],
   listFavoriteIds: async () => new Set(),
   setFavorite: async () => {},
@@ -55,4 +61,24 @@ test("minimal recipe renders without empty sections or null text", async () => {
   expect(await screen.findByLabelText("מלח")).toBeInTheDocument();
   expect(screen.queryByText(/null|NaN|undefined/)).not.toBeInTheDocument();
   expect(screen.queryByText(/\d+ מנות/)).not.toBeInTheDocument();
+  expect(screen.queryByRole("heading", { level: 3 })).not.toBeInTheDocument();
+  expect(screen.queryByText(/דק׳/)).not.toBeInTheDocument();
+});
+
+test("not-found error shows the not-found message", async () => {
+  failWith = { code: "PGRST116" };
+  renderWithProviders(<RecipePage />, { route: "/recipe/r1", path: "/recipe/:id" });
+  expect(await screen.findByText("המתכון לא נמצא.")).toBeInTheDocument();
+});
+
+test("other errors show a retry alert that refetches", async () => {
+  failWith = new Error("network");
+  getRecipeCalls = 0;
+  renderWithProviders(<RecipePage />, { route: "/recipe/r1", path: "/recipe/:id" });
+  expect(await screen.findByText("לא הצלחנו לטעון את המתכון")).toBeInTheDocument();
+  expect(screen.getByRole("alert")).toBeInTheDocument();
+  expect(screen.queryByText("המתכון לא נמצא.")).not.toBeInTheDocument();
+  const before = getRecipeCalls;
+  await userEvent.click(screen.getByRole("button", { name: "נסו שוב" }));
+  await vi.waitFor(() => expect(getRecipeCalls).toBeGreaterThan(before));
 });

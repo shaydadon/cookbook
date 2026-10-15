@@ -15,7 +15,19 @@ export default function RecipePage() {
   const [checked, setChecked] = useState<Set<number>>(new Set());
 
   if (recipe.isPending) return <p role="status" className="py-8 text-center text-muted">טוען…</p>;
-  if (recipe.isError) return <p role="alert" className="py-8 text-center text-red-700">המתכון לא נמצא.</p>;
+  if (recipe.isError) {
+    if ((recipe.error as { code?: string } | null)?.code === "PGRST116") {
+      return <p role="alert" className="py-8 text-center text-red-700">המתכון לא נמצא.</p>;
+    }
+    return (
+      <div role="alert" className="flex flex-col items-center gap-3 py-8 text-center text-red-700">
+        <p>לא הצלחנו לטעון את המתכון</p>
+        <button type="button" onClick={() => recipe.refetch()} className="min-h-11 rounded-full bg-accent px-6 font-medium text-white">
+          נסו שוב
+        </button>
+      </div>
+    );
+  }
 
   const r = recipe.data;
   const img = imageUrl(r.image_path);
