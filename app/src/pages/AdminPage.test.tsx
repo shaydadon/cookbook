@@ -8,8 +8,9 @@ vi.mock("../components/admin/EditRecipe", () => ({ EditRecipe: () => <div>EDIT</
 vi.mock("../components/admin/ChatImport", () => ({ ChatImport: () => <div>IMPORT</div> }));
 vi.mock("../components/admin/AllowList", () => ({ AllowList: () => <div>MEMBERS</div> }));
 
-test("admin page has a single h1", () => {
+// The page h1 ("ניהול") is rendered by Layout's large-title header; the page itself must not add another.
+test("admin page renders no h1 of its own", () => {
   renderWithProviders(<AdminPage />, { member: TEST_ADMIN });
-  expect(screen.getAllByRole("heading", { level: 1 })).toHaveLength(1);
-  expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("ניהול");
+  expect(screen.queryByRole("heading", { level: 1 })).not.toBeInTheDocument();
+  expect(screen.getByRole("tab", { name: "לטיפול" })).toBeInTheDocument();
 });

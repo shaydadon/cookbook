@@ -47,7 +47,6 @@ export default function FeedPage({ favoritesOnly = false }: { favoritesOnly?: bo
 
   return (
     <div className="flex flex-col gap-3 pt-2">
-      <h1 className="sr-only">{favoritesOnly ? "המועדפים שלי" : "המתכונים"}</h1>
       {!favoritesOnly && <IosInstallHint />}
       {!favoritesOnly && <PushPrompt />}
       <SearchBar value={q} onChange={(v) => update("q", v || null)} />
