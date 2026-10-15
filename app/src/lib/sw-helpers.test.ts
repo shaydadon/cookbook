@@ -8,6 +8,8 @@ test("caches single-recipe reads, shares and the feed RPC (GET only)", () => {
   expect(isRecipesApiRequest(u("/recipes?select=*&id=eq.abc"), "GET")).toBe(true);
   expect(isRecipesApiRequest(u("/shares?select=id&recipe_id=eq.abc&order=shared_at"), "GET")).toBe(true);
   expect(isRecipesApiRequest(u("/rpc/search_recipes?favorites_only=false&page_size=24&page_offset=0"), "GET")).toBe(true);
+  // the member's own row, so the app can start offline
+  expect(isRecipesApiRequest(u("/members?select=id%2Cdisplay_name%2Crole&id=eq.u1"), "GET")).toBe(true);
 });
 
 test("admin list, other reads and writes bypass the SW", () => {
@@ -15,7 +17,7 @@ test("admin list, other reads and writes bypass the SW", () => {
   expect(isRecipesApiRequest(u("/recipes?id=eq.abc"), "PATCH")).toBe(false);
   expect(isRecipesApiRequest(u("/rpc/search_recipes"), "POST")).toBe(false);
   expect(isRecipesApiRequest(u("/favorites?select=recipe_id"), "GET")).toBe(false);
-  expect(isRecipesApiRequest(u("/members?select=id&id=eq.abc"), "GET")).toBe(false);
+  expect(isRecipesApiRequest(u("/members?select=id,display_name"), "GET")).toBe(false);
 });
 
 test("notificationTarget keeps same-origin paths and rejects other origins", () => {

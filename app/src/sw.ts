@@ -20,8 +20,9 @@ registerRoute(new NavigationRoute(createHandlerBoundToURL("index.html")));
 // Deliberate deviation from spec §6 ("stale-while-revalidate"): NetworkFirst keeps online data fresh
 // (SWR served the previous response first, so edits/deletes showed up one visit late); offline readability
 // is preserved because the cached copy is used when the network fails or takes longer than 4 s.
-// Only single-recipe reads (id=eq.), shares and the search_recipes GET are cached; the admin list
-// (status=in.), favourites and every other request bypass the SW.
+// Only single-recipe reads (id=eq.), shares, the search_recipes GET and the member's own row (needed to
+// start the app offline) are cached; the admin list (status=in.), favourites and every other request bypass
+// the SW. See isRecipesApiRequest.
 registerRoute(
   ({ url, request }) => isRecipesApiRequest(url, request.method),
   new NetworkFirst({
