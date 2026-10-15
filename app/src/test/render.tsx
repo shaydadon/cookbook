@@ -10,12 +10,22 @@ export const TEST_ADMIN: Member = { ...TEST_MEMBER, id: "a1", display_name: "×©×
 
 export function renderWithProviders(
   ui: ReactElement,
-  opts: { member?: Member | null; signedIn?: boolean; route?: string; path?: string } = {},
+  opts: {
+    member?: Member | null;
+    signedIn?: boolean;
+    route?: string;
+    path?: string;
+    error?: string | null;
+    loading?: boolean;
+    retry?: () => void;
+  } = {},
 ) {
   const member = opts.member === undefined ? TEST_MEMBER : opts.member;
   const signedIn = opts.signedIn ?? member !== null;
   const auth: AuthState = {
-    loading: false,
+    loading: opts.loading ?? false,
+    error: opts.error ?? null,
+    retry: opts.retry ?? (() => {}),
     session: signedIn ? ({ user: { id: member?.id ?? "u", email: member?.email ?? "x@y.z" } } as AuthState["session"]) : null,
     member,
     signOut: async () => {},

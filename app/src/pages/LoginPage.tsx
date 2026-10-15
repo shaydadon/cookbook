@@ -48,7 +48,14 @@ export default function LoginPage() {
       <div className="flex items-center gap-3 text-muted"><hr className="flex-1 border-line" />או<hr className="flex-1 border-line" /></div>
       <button
         className="min-h-12 rounded-full border border-line bg-white font-medium"
-        onClick={() => supabase.auth.signInWithOAuth({ provider: "google", options: { redirectTo: window.location.origin } })}
+        onClick={async () => {
+          setError(null);
+          const { error: oErr } = await supabase.auth.signInWithOAuth({
+            provider: "google",
+            options: { redirectTo: window.location.origin },
+          });
+          if (oErr) setError("הכניסה עם Google נכשלה");
+        }}
       >
         כניסה עם Google
       </button>
