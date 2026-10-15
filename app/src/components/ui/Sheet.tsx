@@ -13,7 +13,22 @@ export function Sheet({ open, onClose, title, children, leading, trailing }: {
     const opener = document.activeElement as HTMLElement | null;
     const first = panel.current?.querySelector<HTMLElement>("input, textarea, select, button, [href]");
     (first ?? panel.current)?.focus();
-    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") closeRef.current(); };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") { closeRef.current(); return; }
+      if (e.key !== "Tab" || !panel.current) return;
+      // Modal: keep Tab / Shift+Tab cycling inside the panel.
+      const items = [...panel.current.querySelectorAll<HTMLElement>(
+        'input, textarea, select, button, [href], [tabindex]:not([tabindex="-1"])',
+      )].filter((el) => !(el as HTMLButtonElement).disabled);
+      if (items.length === 0) { e.preventDefault(); panel.current.focus(); return; }
+      const first = items[0], last = items[items.length - 1];
+      const active = document.activeElement as HTMLElement | null;
+      const inside = !!active && panel.current.contains(active);
+      if (e.shiftKey ? (!inside || active === first) : (!inside || active === last)) {
+        e.preventDefault();
+        (e.shiftKey ? last : first).focus();
+      }
+    };
     document.addEventListener("keydown", onKey);
     return () => {
       document.removeEventListener("keydown", onKey);

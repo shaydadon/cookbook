@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { NavLink, Outlet, useLocation } from "react-router";
 import { useAuth } from "../auth/AuthProvider";
 import { SettingsSheet } from "./SettingsSheet";
@@ -30,6 +30,15 @@ export function Layout() {
     return () => el.removeEventListener("scroll", onScroll);
   }, [pathname]);
 
+  // Each page starts at the top. /add is a sheet over the feed, so opening or closing it keeps the feed position.
+  const prevPath = useRef(pathname);
+  useEffect(() => {
+    const from = prevPath.current;
+    prevPath.current = pathname;
+    if (from === pathname || from === "/add" || pathname === "/add") return;
+    document.getElementById("app-scroll")?.scrollTo?.({ top: 0 });
+  }, [pathname]);
+
   const initial = member?.display_name?.trim().charAt(0) || "?";
 
   return (
@@ -37,10 +46,10 @@ export function Layout() {
       {title && (
         <>
           <div aria-hidden={!collapsed}
-            className={`frost sticky top-0 z-20 flex h-11 items-center justify-center border-b border-line pt-[env(safe-area-inset-top)] text-[17px] font-semibold transition-opacity ${collapsed ? "opacity-100" : "pointer-events-none opacity-0"}`}>
+            className={`frost sticky top-0 z-20 flex h-[calc(2.75rem+env(safe-area-inset-top))] items-center justify-center border-b border-line pt-[env(safe-area-inset-top)] text-[17px] font-semibold transition-opacity ${collapsed ? "opacity-100" : "pointer-events-none opacity-0"}`}>
             {title}
           </div>
-          <header className="-mt-11 flex items-end justify-between px-4 pb-2 pt-[calc(env(safe-area-inset-top)+3rem)]">
+          <header className="-mt-[calc(2.75rem+env(safe-area-inset-top))] flex items-end justify-between px-4 pb-2 pt-[calc(env(safe-area-inset-top)+3rem)]">
             <h1 className="text-[30px] font-extrabold leading-tight tracking-tight">{title}</h1>
             <button type="button" aria-label="הגדרות" onClick={() => setSettingsOpen(true)}
               className="pressable grid size-9 place-items-center rounded-full bg-accent text-sm font-bold text-on-accent">

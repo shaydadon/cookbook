@@ -37,3 +37,17 @@ test("focus moves into the sheet and returns to the opener on close", async () =
   await userEvent.keyboard("{Escape}");
   expect(opener).toHaveFocus();
 });
+
+test("Tab and Shift+Tab stay inside the open sheet", async () => {
+  render(
+    <>
+      <button>behind</button>
+      <Sheet open onClose={() => {}} title="t"><input aria-label="first" /><button>last</button></Sheet>
+    </>,
+  );
+  screen.getByRole("button", { name: "last" }).focus();
+  await userEvent.tab();
+  expect(screen.getByLabelText("first")).toHaveFocus();
+  await userEvent.tab({ shift: true });
+  expect(screen.getByRole("button", { name: "last" })).toHaveFocus();
+});
