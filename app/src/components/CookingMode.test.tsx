@@ -34,6 +34,36 @@ test("steps forward and back with buttons, keys and swipes", async () => {
   expect(screen.getByRole("button", { name: "הקודם" })).toBeEnabled();
 });
 
+test("a vertical swipe (scrolling a long step) does not change the step", () => {
+  render(<CookingMode title="ממרח" steps={steps} ingredients={ingredients} onExit={() => {}} />);
+  const area = screen.getByTestId("swipe-area");
+  fireEvent.touchStart(area, { touches: [{ clientX: 100, clientY: 100 }] });
+  fireEvent.touchEnd(area, { changedTouches: [{ clientX: 180, clientY: 400 }] });
+  expect(screen.getByText("שלב 1 מתוך 3")).toBeInTheDocument();
+  fireEvent.touchStart(area, { touches: [{ clientX: 100, clientY: 100 }] });
+  fireEvent.touchEnd(area, { changedTouches: [{ clientX: 200, clientY: 130 }] });
+  expect(screen.getByText("שלב 2 מתוך 3")).toBeInTheDocument();
+});
+
+test("the steps array shrinking under the current step does not crash", async () => {
+  const { rerender } = render(<CookingMode title="ממרח" steps={steps} ingredients={ingredients} onExit={() => {}} />);
+  await userEvent.click(screen.getByRole("button", { name: "הבא" }));
+  await userEvent.click(screen.getByRole("button", { name: "הבא" }));
+  expect(screen.getByText("שלב 3 מתוך 3")).toBeInTheDocument();
+  rerender(<CookingMode title="ממרח" steps={steps.slice(0, 1)} ingredients={ingredients} onExit={() => {}} />);
+  expect(screen.getByText("שלב 1 מתוך 1")).toBeInTheDocument();
+  expect(screen.getByText("קוצצים את הבצל.")).toBeInTheDocument();
+  rerender(<CookingMode title="ממרח" steps={[]} ingredients={ingredients} onExit={() => {}} />);
+  expect(screen.queryByText(/מתוך/)).not.toBeInTheDocument();
+});
+
+test("long steps use a smaller font and the step area scrolls", () => {
+  const long = "א".repeat(161);
+  render(<CookingMode title="ממרח" steps={[{ text: long }, { text: "קצר" }]} ingredients={[]} onExit={() => {}} />);
+  expect(screen.getByText(long)).toHaveClass("text-2xl");
+  expect(screen.getByTestId("swipe-area")).toHaveClass("min-h-0", "flex-1", "overflow-y-auto");
+});
+
 test("last step offers finishing", async () => {
   const onExit = vi.fn();
   render(<CookingMode title="ממרח" steps={[{ text: "מגישים." }]} ingredients={[]} onExit={onExit} />);

@@ -1,6 +1,7 @@
 import { screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { expect, test, vi } from "vitest";
+import { Route, Routes } from "react-router";
+import { afterEach, expect, test, vi } from "vitest";
 import type { Recipe } from "../lib/types";
 import { renderWithProviders } from "../test/render";
 import CookingPage from "./CookingPage";
@@ -25,6 +26,41 @@ const base: Recipe = {
 };
 
 const render = () => renderWithProviders(<CookingPage />, { route: "/recipe/r1/cook", path: "/recipe/:id/cook" });
+
+const routes = (
+  <Routes>
+    <Route path="/" element={<div>FEED PAGE</div>} />
+    <Route path="/recipe/:id" element={<div>RECIPE PAGE</div>} />
+    <Route path="/recipe/:id/cook" element={<CookingPage />} />
+  </Routes>
+);
+
+function setHistoryIdx(idx: number | null) {
+  Object.defineProperty(window.history, "state", { value: idx === null ? null : { idx }, configurable: true });
+}
+
+afterEach(() => {
+  // drop the own-property override; History.prototype.state applies again
+  delete (window.history as { state?: unknown }).state;
+});
+
+test("exit goes back when the cooking page was reached from inside the app", async () => {
+  failWith = null;
+  current = base;
+  setHistoryIdx(1);
+  renderWithProviders(routes, { entries: ["/", "/recipe/r1/cook"] });
+  await userEvent.click(await screen.findByRole("button", { name: "יציאה" }));
+  expect(await screen.findByText("FEED PAGE")).toBeInTheDocument();
+});
+
+test("exit opened directly replaces the entry with the recipe page", async () => {
+  failWith = null;
+  current = base;
+  setHistoryIdx(0);
+  renderWithProviders(routes, { entries: ["/", "/recipe/r1/cook"] });
+  await userEvent.click(await screen.findByRole("button", { name: "יציאה" }));
+  expect(await screen.findByText("RECIPE PAGE")).toBeInTheDocument();
+});
 
 test("not-found error shows the not-found message", async () => {
   failWith = { code: "PGRST116" };

@@ -63,7 +63,7 @@ export function StatusCard({ recipeId, initialStatus, duplicate }: {
       <p className={done ? "text-green-700" : status === "failed" || status === "needs_review" ? "text-red-700" : "text-muted"}>
         {STATUS_LABEL[status]}
       </p>
-      {done && <Link to={`/recipe/${recipeId}`} className="text-accent underline">לצפייה במתכון</Link>}
+      {done && <Link to={`/recipe/${recipeId}`} className="inline-flex min-h-11 items-center self-start text-accent underline">לצפייה במתכון</Link>}
     </div>
   );
 }

@@ -24,5 +24,12 @@ export default function CookingPage() {
   }
   const data = recipe.data;
   if (data.steps.length === 0) return <p role="alert" className="p-8 text-center">אין שלבים למתכון הזה.</p>;
-  return <CookingMode title={data.title ?? ""} steps={data.steps} ingredients={data.ingredients} onExit={() => navigate(`/recipe/${id}`)} />;
+  // Back when we came from inside the app (keeps scroll and history clean); otherwise (opened directly,
+  // e.g. from a notification) replace this entry with the recipe page.
+  const exit = () => {
+    const idx = (window.history.state as { idx?: number } | null)?.idx ?? 0;
+    if (idx > 0) navigate(-1);
+    else navigate(`/recipe/${id}`, { replace: true });
+  };
+  return <CookingMode title={data.title ?? ""} steps={data.steps} ingredients={data.ingredients} onExit={exit} />;
 }

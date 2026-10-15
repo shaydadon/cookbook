@@ -44,6 +44,14 @@ test("a late initial fetch does not overwrite a newer realtime status", async ()
   expect(screen.getByText("עוגה")).toBeInTheDocument();
 });
 
+test("the view-recipe link is a 44px tap target", async () => {
+  h.getRecipe.mockResolvedValue({ status: "published", title: "עוגה" });
+  card();
+  const link = await screen.findByRole("link", { name: "לצפייה במתכון" });
+  expect(link).toHaveAttribute("href", "/recipe/r1");
+  expect(link).toHaveClass("inline-flex", "min-h-11", "items-center");
+});
+
 test("SUBSCRIBED triggers a refetch that is applied when no realtime payload arrived", async () => {
   h.getRecipe
     .mockResolvedValueOnce({ status: "queued", title: null })

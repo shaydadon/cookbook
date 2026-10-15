@@ -14,6 +14,8 @@ export function renderWithProviders(
     member?: Member | null;
     signedIn?: boolean;
     route?: string;
+    /** full history stack (the last entry is current); overrides `route` */
+    entries?: string[];
     path?: string;
     error?: string | null;
     loading?: boolean;
@@ -34,7 +36,7 @@ export function renderWithProviders(
   return render(
     <QueryClientProvider client={qc}>
       <AuthContext.Provider value={auth}>
-        <MemoryRouter initialEntries={[opts.route ?? "/"]}>
+        <MemoryRouter initialEntries={opts.entries ?? [opts.route ?? "/"]}>
           <Routes>
             <Route path={opts.path ?? "*"} element={ui} />
             <Route path="/login" element={<div>LOGIN PAGE</div>} />
