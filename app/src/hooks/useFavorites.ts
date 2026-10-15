@@ -19,7 +19,10 @@ export function useFavorites() {
       return { prev };
     },
     onError: (_e, _v, ctx) => ctx?.prev && qc.setQueryData(["favorites"], ctx.prev),
-    onSettled: () => qc.invalidateQueries({ queryKey: ["recipes"] }),
+    onSettled: () => {
+      qc.invalidateQueries({ queryKey: ["recipes"] });
+      qc.invalidateQueries({ queryKey: ["favorites"] });
+    },
   });
 
   return { ids, toggle: (recipeId: string) => mutation.mutate({ recipeId, on: !ids.has(recipeId) }) };

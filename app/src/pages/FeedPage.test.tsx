@@ -55,6 +55,23 @@ test("favourite toggle calls setFavorite with the member id", async () => {
   expect(setFavorite).toHaveBeenCalledWith("m1", "r1", true);
 });
 
+test("search passes the exact typed string through after the debounce", async () => {
+  listRecipes.mockResolvedValue([]);
+  renderWithProviders(<FeedPage />);
+  await userEvent.type(await screen.findByRole("searchbox"), '50% "חלבי"_');
+  await waitFor(() => expect(listRecipes).toHaveBeenLastCalledWith(expect.objectContaining({ q: '50% "חלבי"_' })), { timeout: 2000 });
+});
+
+test("un-favouriting on the favourites page calls setFavorite(false) and refetches", async () => {
+  listRecipes.mockResolvedValue([recipe("r2", "עוגת שמרים")]);
+  renderWithProviders(<FeedPage favoritesOnly />);
+  const btn = await screen.findByRole("button", { name: "הסרה מהמועדפים" });
+  const callsBefore = listRecipes.mock.calls.length;
+  await userEvent.click(btn);
+  expect(setFavorite).toHaveBeenCalledWith("m1", "r2", false);
+  await waitFor(() => expect(listRecipes.mock.calls.length).toBeGreaterThan(callsBefore));
+});
+
 test("favourites page asks for favourites only", async () => {
   listRecipes.mockResolvedValue([]);
   renderWithProviders(<FeedPage favoritesOnly />);

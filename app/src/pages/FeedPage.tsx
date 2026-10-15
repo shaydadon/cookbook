@@ -1,4 +1,4 @@
-import { useInfiniteQuery } from "@tanstack/react-query";
+import { keepPreviousData, useInfiniteQuery } from "@tanstack/react-query";
 import { useEffect, useRef } from "react";
 import { useSearchParams } from "react-router";
 import { CategoryChips } from "../components/CategoryChips";
@@ -27,18 +27,20 @@ export default function FeedPage({ favoritesOnly = false }: { favoritesOnly?: bo
     queryFn: ({ pageParam }) => listRecipes({ q: debouncedQ, category, favoritesOnly, page: pageParam }),
     initialPageParam: 0,
     getNextPageParam: (last, all) => (last.length === PAGE_SIZE ? all.length : undefined),
+    placeholderData: keepPreviousData,
   });
+  const { hasNextPage, isFetchingNextPage, fetchNextPage } = query;
   const recipes = query.data?.pages.flat() ?? [];
 
   const sentinel = useRef<HTMLDivElement>(null);
   useEffect(() => {
     if (!sentinel.current || !("IntersectionObserver" in window)) return;
     const io = new IntersectionObserver(([e]) => {
-      if (e.isIntersecting && query.hasNextPage && !query.isFetchingNextPage) query.fetchNextPage();
+      if (e.isIntersecting && hasNextPage && !isFetchingNextPage) fetchNextPage();
     }, { rootMargin: "400px" });
     io.observe(sentinel.current);
     return () => io.disconnect();
-  }, [query]);
+  }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
 
   const empty = favoritesOnly ? "עוד לא סימנת מתכונים כמועדפים" : "עוד אין כאן מתכונים";
 
