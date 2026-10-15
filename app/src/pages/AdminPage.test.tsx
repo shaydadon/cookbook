@@ -14,3 +14,10 @@ test("admin page renders no h1 of its own", () => {
   expect(screen.queryByRole("heading", { level: 1 })).not.toBeInTheDocument();
   expect(screen.getByRole("tab", { name: "לטיפול" })).toBeInTheDocument();
 });
+
+test("tabs render as a segmented control with the review tab selected", () => {
+  renderWithProviders(<AdminPage />, { member: TEST_ADMIN });
+  const list = screen.getByRole("tablist");
+  expect(list.className).toMatch(/bg-fill/);
+  expect(screen.getByRole("tab", { name: "לטיפול" })).toHaveAttribute("aria-selected", "true");
+});

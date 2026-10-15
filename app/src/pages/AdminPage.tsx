@@ -15,14 +15,14 @@ const TABS = [
 export default function AdminPage() {
   const { member } = useAuth();
   const [tab, setTab] = useState<(typeof TABS)[number]["key"]>("review");
-  if (member?.role !== "admin") return <p className="py-8 text-center">אין הרשאה.</p>;
+  if (member?.role !== "admin") return <p className="py-8 text-center text-muted">אין הרשאה.</p>;
   return (
     <div className="flex flex-col gap-4 pt-2">
-      <div role="tablist" className="flex gap-2 overflow-x-auto">
+      <div role="tablist" className="flex rounded-[10px] bg-fill p-0.5">
         {TABS.map((t) => (
           <button key={t.key} role="tab" id={`tab-${t.key}`} aria-controls={`panel-${t.key}`} aria-selected={tab === t.key}
             onClick={() => setTab(t.key)}
-            className={`min-h-11 shrink-0 rounded-full px-4 ${tab === t.key ? "bg-ink text-bg" : "border border-line bg-surface"}`}>
+            className={`min-h-9 flex-1 rounded-lg px-1 text-[13px] font-semibold transition ${tab === t.key ? "bg-surface text-ink shadow-sm" : "text-ink/80"}`}>
             {t.label}
           </button>
         ))}

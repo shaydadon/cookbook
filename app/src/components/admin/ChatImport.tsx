@@ -27,10 +27,10 @@ export function ChatImport() {
 
   return (
     <div className="flex flex-col gap-3">
-      <p className="text-sm text-muted">בוואטסאפ: הקבוצה ← ⋮ ← עוד ← ייצוא צ'אט ← ללא מדיה. העלו כאן את קובץ ה-txt.</p>
-      <p className="text-sm text-muted">באייפון הקובץ מגיע כ-zip — פתחו אותו והעלו את _chat.txt</p>
-      <label htmlFor="chat-file" className="font-medium">קובץ ייצוא (.txt)</label>
-      <input id="chat-file" type="file" accept=".txt,text/plain" disabled={busy}
+      <p className="px-1 text-[13px] text-muted">בוואטסאפ: הקבוצה ← ⋮ ← עוד ← ייצוא צ'אט ← ללא מדיה. העלו כאן את קובץ ה-txt.</p>
+      <p className="px-1 text-[13px] text-muted">באייפון הקובץ מגיע כ-zip — פתחו אותו והעלו את _chat.txt</p>
+      <label htmlFor="chat-file" className="px-1 text-[13px] text-muted">קובץ ייצוא (.txt)</label>
+      <input id="chat-file" type="file" accept=".txt,text/plain" disabled={busy} className="card w-full rounded-xl p-3 text-[14px]"
         onChange={(e) => {
           const file = e.currentTarget.files?.[0];
           e.currentTarget.value = "";
@@ -41,7 +41,7 @@ export function ChatImport() {
           {progress.done} מתוך {progress.total} הודעות עם קישור · {progress.created} מתכונים חדשים · {progress.duplicates} כבר היו
         </p>
       )}
-      {error && <p role="alert" className="text-danger">{error}</p>}
+      {error && <p role="alert" className="text-[13px] text-danger">{error}</p>}
     </div>
   );
 }
