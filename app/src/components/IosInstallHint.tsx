@@ -1,5 +1,7 @@
 import { useState } from "react";
 import { isStandalone, shouldShowIosInstallHint } from "../lib/push";
+import { IconButton } from "./ui/IconButton";
+import { CloseIcon } from "./ui/icons";
 
 export function IosInstallHint() {
   const [show, setShow] = useState(() => {
@@ -8,14 +10,14 @@ export function IosInstallHint() {
   });
   if (!show) return null;
   return (
-    <div className="flex items-start gap-3 rounded-2xl bg-surface p-4 shadow-sm">
+    <div className="card flex items-start gap-3 rounded-2xl p-4">
       <p className="flex-1 text-sm">
         באייפון: לחצו על כפתור השיתוף ⬆️ ואז "הוספה למסך הבית" — כך האפליקציה תיפתח במסך מלא ותוכל לשלוח התראות.
       </p>
-      <button aria-label="סגירה" className="size-11" onClick={() => {
+      <IconButton label="סגירה" onClick={() => {
         try { localStorage.setItem("ios-hint-dismissed", "1"); } catch { /* ignore */ }
         setShow(false);
-      }}>✕</button>
+      }}><CloseIcon className="size-4" /></IconButton>
     </div>
   );
 }

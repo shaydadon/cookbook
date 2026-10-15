@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { pushSupported, subscribePush } from "../lib/push";
+import { BellIcon } from "./ui/icons";
 
 const KEY = "push-prompt-dismissed";
 export const RESUBSCRIBED_KEY = "push-resubscribed";
@@ -58,11 +59,11 @@ export function PushPrompt() {
   };
 
   return (
-    <div className="flex flex-col gap-2 rounded-2xl bg-accent-soft p-4">
-      <p className="font-medium">לקבל התראה כשמתכון חדש מגיע?</p>
+    <div className="card flex flex-col gap-3 rounded-2xl p-4">
+      <p className="flex items-center gap-2 font-semibold"><BellIcon className="size-5 shrink-0 text-accent" />לקבל התראה כשמתכון חדש מגיע?</p>
       <div className="flex gap-2">
-        <button disabled={busy} className="min-h-11 flex-1 rounded-full bg-accent text-on-accent disabled:opacity-60" onClick={accept}>כן, תודיעו לי</button>
-        <button className="min-h-11 rounded-full border border-line bg-surface px-4" onClick={dismiss}>לא עכשיו</button>
+        <button disabled={busy} className="pressable min-h-11 flex-1 rounded-xl bg-accent font-semibold text-on-accent disabled:opacity-60" onClick={accept}>כן, תודיעו לי</button>
+        <button className="pressable min-h-11 rounded-xl bg-fill px-4 font-medium" onClick={dismiss}>לא עכשיו</button>
       </div>
       {error && <p role="alert" className="text-sm text-danger">ההרשמה להתראות נכשלה.</p>}
     </div>

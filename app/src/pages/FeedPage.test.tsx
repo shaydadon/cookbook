@@ -29,7 +29,7 @@ test("shows recipe cards with total time; no image renders a placeholder", async
   listRecipes.mockResolvedValue([recipe("r1", "מרק עדשים"), recipe("r2", "עוגת שמרים", { prep_minutes: null, cook_minutes: null })]);
   renderWithProviders(<FeedPage />);
   expect(await screen.findByRole("link", { name: /מרק עדשים/ })).toHaveAttribute("href", "/recipe/r1");
-  expect(screen.getByText("30 דק׳")).toBeInTheDocument();
+  expect(screen.getByText("מרקים · 30 דק׳")).toBeInTheDocument(); // caption = category · total time
   expect(screen.queryByText(/NaN|null/)).not.toBeInTheDocument();
 });
 

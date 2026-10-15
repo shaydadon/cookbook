@@ -8,18 +8,19 @@ export function RecipeCard({ recipe, isFavorite, onToggleFavorite }: {
 }) {
   const img = imageUrl(recipe.image_path);
   const total = totalMinutes(recipe);
+  const caption = [recipe.category, total ? formatMinutes(total) : null].filter(Boolean).join(" · ");
   return (
     // The favourite button is a sibling of the link (no interactive element nested inside <a>).
-    <div className="relative overflow-hidden rounded-2xl bg-surface shadow-sm">
+    <div className="card pressable relative overflow-hidden rounded-2xl">
       <Link to={`/recipe/${recipe.id}`} className="block">
         <div className="aspect-square bg-accent-soft">
           {img
             ? <img src={img} alt="" crossOrigin="anonymous" loading="lazy" className="size-full object-cover" />
-            : <div className="grid size-full place-items-center text-5xl" aria-hidden>🍽️</div>}
+            : <div data-testid="card-placeholder" className="grid size-full place-items-center text-5xl" aria-hidden>🍽️</div>}
         </div>
-        <div className="p-3">
-          <h2 className="line-clamp-2 font-medium leading-snug">{recipe.title}</h2>
-          {total && <p className="mt-1 text-sm text-muted">{formatMinutes(total)}</p>}
+        <div className="px-2.5 pb-2.5 pt-2">
+          <h2 className="line-clamp-2 text-[13px] font-semibold leading-snug">{recipe.title}</h2>
+          {caption && <p className="mt-0.5 text-[11.5px] text-muted">{caption}</p>}
         </div>
       </Link>
       <div className="absolute end-2 top-2">
