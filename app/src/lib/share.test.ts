@@ -20,6 +20,16 @@ test("link only in title", () => {
   expect(prefillFromShare(new URLSearchParams({ title: "https://a.test/r" })).url).toBe("https://a.test/r");
 });
 
+test("trailing sentence punctuation is stripped from the link", () => {
+  expect(extractFirstUrl("see https://a.test/r.")).toBe("https://a.test/r");
+  expect(prefillFromShare(new URLSearchParams({ text: "see https://a.test/r." })).url).toBe("https://a.test/r");
+});
+
+test("link in both url and text is not duplicated; extra words stay in the note", () => {
+  const p = new URLSearchParams({ url: "https://a.test/r", text: "yummy https://a.test/r" });
+  expect(prefillFromShare(p)).toEqual({ url: "https://a.test/r", note: "yummy" });
+});
+
 test("nothing shared", () => {
   expect(prefillFromShare(new URLSearchParams())).toEqual({ url: "", note: "" });
 });

@@ -1,7 +1,9 @@
 const URL_RE = /https?:\/\/[^\s<>"'“”]+/i;
 
 export function extractFirstUrl(text: string): string | null {
-  return text.match(URL_RE)?.[0] ?? null;
+  // Trailing punctuation is always stripped, including a closing ")" even if balanced (wiki-style "(x)" URLs lose it).
+  const m = text.match(URL_RE)?.[0];
+  return m ? m.replace(/[.,;:!?)\]}»"']+$/, "") : null;
 }
 
 export function prefillFromShare(params: URLSearchParams): { url: string; note: string } {

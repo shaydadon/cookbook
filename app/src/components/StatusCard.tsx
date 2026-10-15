@@ -15,14 +15,17 @@ export function StatusCard({ recipeId, initialStatus, duplicate }: {
     // Once a Realtime payload has been applied, a slower initial fetch must not overwrite it.
     let realtimeApplied = false;
     let active = true;
-    getRecipe(recipeId)
-      .then((r) => {
-        if (!active || realtimeApplied) return;
-        setStatus(r.status);
-        setTitle(r.title);
-      })
-      .catch(() => {});
-    const channel = supabase.channel(`recipe-${recipeId}`)
+    const refetch = () => {
+      getRecipe(recipeId)
+        .then((r) => {
+          if (!active || realtimeApplied) return;
+          setStatus(r.status);
+          setTitle(r.title);
+        })
+        .catch(() => {});
+    };
+    refetch();
+    const channel = supabase.channel(`recipe-${recipeId}-${crypto.randomUUID()}`)
       .on("postgres_changes", { event: "UPDATE", schema: "public", table: "recipes", filter: `id=eq.${recipeId}` },
         (payload) => {
           const row = payload.new as { status: RecipeStatus; title: string | null };
@@ -30,7 +33,7 @@ export function StatusCard({ recipeId, initialStatus, duplicate }: {
           setStatus(row.status);
           setTitle(row.title);
         })
-      .subscribe();
+      .subscribe((s) => { if (s === "SUBSCRIBED") refetch(); });
     return () => { active = false; supabase.removeChannel(channel); };
   }, [recipeId]);
 

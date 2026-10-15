@@ -20,7 +20,8 @@ export default function AddRecipePage() {
     setBusy(true);
     try {
       const res = await ingestLink([note.trim(), url.trim()].filter(Boolean).join("\n"));
-      setResults((prev) => [...res, ...prev]);
+      const fresh = [...new Map(res.map((r) => [r.recipe_id, r])).values()];
+      setResults((prev) => [...fresh, ...prev.filter((p) => !fresh.some((f) => f.recipe_id === p.recipe_id))]);
       setUrl("");
       setNote("");
     } catch {
@@ -35,7 +36,7 @@ export default function AddRecipePage() {
       <h2 className="text-lg font-bold">הוספת מתכון</h2>
       <form onSubmit={submit} className="flex flex-col gap-3">
         <label htmlFor="url" className="font-medium">קישור למתכון</label>
-        <input id="url" dir="ltr" inputMode="url" value={url} onChange={(e) => setUrl(e.target.value)}
+        <input id="url" dir="ltr" inputMode="url" autoCapitalize="none" autoCorrect="off" spellCheck={false} value={url} onChange={(e) => setUrl(e.target.value)}
           placeholder="https://…" className="min-h-12 rounded-xl border border-line bg-white px-4" />
         <label htmlFor="note" className="font-medium">הערה (לא חובה)</label>
         <textarea id="note" rows={3} value={note} onChange={(e) => setNote(e.target.value)}

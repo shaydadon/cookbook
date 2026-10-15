@@ -27,6 +27,20 @@ test("pre-fills from a share and submits link + note", async () => {
   expect(await screen.findByText("STATUS r9 new")).toBeInTheDocument();
 });
 
+test("submitting the same link twice renders one status card", async () => {
+  ingestLink.mockResolvedValue([
+    { url: "https://a.test/r", recipe_id: "r5", status: "queued", duplicate: false },
+    { url: "https://a.test/r", recipe_id: "r5", status: "queued", duplicate: false },
+  ]);
+  renderWithProviders(<AddRecipePage />, { route: "/add?url=https%3A%2F%2Fa.test%2Fr" });
+  await userEvent.click(screen.getByRole("button", { name: "הוספה" }));
+  expect(await screen.findAllByText("STATUS r5 new")).toHaveLength(1);
+  await userEvent.type(screen.getByLabelText("קישור למתכון"), "https://a.test/r");
+  await userEvent.click(screen.getByRole("button", { name: "הוספה" }));
+  expect(await screen.findAllByText(/STATUS r5/)).toHaveLength(1);
+  expect(ingestLink).toHaveBeenCalledTimes(2);
+});
+
 test("rejects input without a link", async () => {
   renderWithProviders(<AddRecipePage />, { route: "/add" });
   await userEvent.type(screen.getByLabelText("קישור למתכון"), "סתם טקסט");
