@@ -9,7 +9,26 @@ vi.mock("../lib/supabase", () => ({
   supabase: { auth: { signInWithOtp: (...a: unknown[]) => signInWithOtp(...a), signInWithOAuth: vi.fn() } },
 }));
 
-beforeEach(() => signInWithOtp.mockReset());
+beforeEach(() => {
+  signInWithOtp.mockReset();
+  sessionStorage.clear();
+});
+
+test("a Google redirect rejected by the members hook shows the members-only alert once", async () => {
+  sessionStorage.setItem("auth-error", "Error running hook URI: pg-functions://postgres/public/before_user_created (403)");
+  const { unmount } = renderWithProviders(<LoginPage />, { member: null, signedIn: false });
+  expect(await screen.findByRole("alert")).toHaveTextContent("הגישה מותרת לחברי הקבוצה בלבד");
+  expect(sessionStorage.getItem("auth-error")).toBeNull();
+  unmount();
+  renderWithProviders(<LoginPage />, { member: null, signedIn: false });
+  expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+});
+
+test("any other redirect error shows a generic sign-in failure", async () => {
+  sessionStorage.setItem("auth-error", "Unable to exchange external code");
+  renderWithProviders(<LoginPage />, { member: null, signedIn: false });
+  expect(await screen.findByRole("alert")).toHaveTextContent("הכניסה נכשלה. נסו שוב.");
+});
 
 test("sends a magic link and confirms", async () => {
   signInWithOtp.mockResolvedValue({ error: null });

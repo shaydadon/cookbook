@@ -1,7 +1,8 @@
-import { type FormEvent, useState } from "react";
+import { type FormEvent, useEffect, useState } from "react";
 import { Navigate } from "react-router";
 import { useAuth } from "../auth/AuthProvider";
 import { APP_NAME } from "../lib/app";
+import { MEMBERS_ONLY, takeAuthError } from "../lib/auth-error";
 import { supabase } from "../lib/supabase";
 
 export default function LoginPage() {
@@ -10,6 +11,12 @@ export default function LoginPage() {
   const [sent, setSent] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+
+  // An OAuth redirect error captured at startup (see capture-auth-error.ts): show it once.
+  useEffect(() => {
+    const m = takeAuthError();
+    if (m) setError(m);
+  }, []);
 
   if (session && member) return <Navigate to="/" replace />;
 
@@ -24,7 +31,7 @@ export default function LoginPage() {
     setBusy(false);
     if (!error) return setSent(true);
     setError(error.status === 403 || error.status === 422
-      ? "הגישה מותרת לחברי הקבוצה בלבד"
+      ? MEMBERS_ONLY
       : "לא הצלחנו לשלוח קישור. נסו שוב בעוד רגע.");
   }
 

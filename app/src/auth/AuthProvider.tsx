@@ -1,4 +1,5 @@
 import type { Session } from "@supabase/supabase-js";
+import { useQueryClient } from "@tanstack/react-query";
 import { createContext, type ReactNode, useCallback, useContext, useEffect, useRef, useState } from "react";
 import { clearRecipesApiCache } from "../lib/cache-names";
 import { supabase } from "../lib/supabase";
@@ -24,6 +25,8 @@ export function useAuth(): AuthState {
 export const AUTH_LOAD_ERROR = "לא הצלחנו לטעון את החשבון";
 
 export function AuthProvider({ children }: { children: ReactNode }) {
+  // Rendered inside QueryClientProvider (main.tsx): one user's cached queries must never reach the next.
+  const queryClient = useQueryClient();
   const [session, setSession] = useState<Session | null>(null);
   const [member, setMember] = useState<Member | null>(null);
   const [loading, setLoading] = useState(true);
@@ -84,8 +87,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setSession(s);
         return;
       }
-      // a different user replaces a previous one: drop the offline API cache (not on the very first load)
-      if (userId.current !== null) void clearRecipesApiCache();
+      // a different user replaces a previous one: drop the offline API cache and the query cache
+      // (not on the very first load)
+      if (userId.current !== null) {
+        void clearRecipesApiCache();
+        queryClient.clear();
+      }
       userId.current = s?.user.id ?? null;
       setLoading(true);
       // defer: supabase-js forbids awaiting its own calls inside this callback
@@ -95,7 +102,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       requestId.current++;
       sub.subscription.unsubscribe();
     };
-  }, [load]);
+  }, [load, queryClient]);
 
   const retry = useCallback(() => {
     setLoading(true);
@@ -107,6 +114,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     loading, session, member, error, retry,
     signOut: async () => {
       await supabase.auth.signOut();
+      queryClient.clear();
       await clearRecipesApiCache();
     },
   };

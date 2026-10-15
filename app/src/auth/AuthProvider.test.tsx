@@ -1,5 +1,7 @@
 import type { Session } from "@supabase/supabase-js";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { act, render, screen, waitFor } from "@testing-library/react";
+import type { ReactElement } from "react";
 import { beforeEach, expect, test, vi } from "vitest";
 import { AuthProvider, useAuth } from "./AuthProvider";
 
@@ -45,13 +47,49 @@ function Probe() {
   );
 }
 
-const mount = () => render(<AuthProvider><Probe /></AuthProvider>);
+// AuthProvider needs the QueryClient (it clears the query cache on sign-out / user change).
+let qc: QueryClient;
+const withQc = (ui: ReactElement) => <QueryClientProvider client={qc}>{ui}</QueryClientProvider>;
+const mount = () => render(withQc(<AuthProvider><Probe /></AuthProvider>));
 const tick = () => act(() => new Promise((r) => setTimeout(r, 5)));
 
 beforeEach(() => {
   h.getSession.mockReset();
   h.maybeSingle.mockReset();
   h.cb = null;
+  qc = new QueryClient();
+});
+
+test("signOut clears the React Query cache", async () => {
+  h.getSession.mockResolvedValue({ data: { session: null } });
+  qc.setQueryData(["recipes", "", null, false], { pages: [[{ id: "secret" }]] });
+  let out!: () => Promise<void>;
+  function Grab() {
+    out = useAuth().signOut;
+    return null;
+  }
+  render(withQc(<AuthProvider><Grab /></AuthProvider>));
+  await act(async () => { await out(); });
+  expect(qc.getQueryCache().getAll()).toHaveLength(0);
+});
+
+test("switching to a different user clears the React Query cache, the first load does not", async () => {
+  h.getSession.mockResolvedValue({ data: { session: null } });
+  h.maybeSingle.mockResolvedValue(row("איי"));
+  mount();
+  await waitFor(() => expect(h.cb).not.toBeNull());
+  await waitFor(() => expect(screen.getByTestId("loading")).toHaveTextContent("false"));
+
+  qc.setQueryData(["favorites"], ["before-first-login"]);
+  act(() => h.cb!("SIGNED_IN", sess("A")));
+  await waitFor(() => expect(screen.getByTestId("member")).toHaveTextContent("איי"));
+  expect(qc.getQueryData(["favorites"])).toEqual(["before-first-login"]);
+
+  qc.setQueryData(["recipe", "r1"], { id: "r1", title: "של A" });
+  h.maybeSingle.mockResolvedValue(row("בי"));
+  act(() => h.cb!("SIGNED_IN", sess("B")));
+  expect(qc.getQueryData(["recipe", "r1"])).toBeUndefined();
+  await waitFor(() => expect(screen.getByTestId("member")).toHaveTextContent("בי"));
 });
 
 test("signOut clears the recipes-api cache", async () => {
@@ -64,7 +102,7 @@ test("signOut clears the recipes-api cache", async () => {
       out = useAuth().signOut;
       return null;
     }
-    render(<AuthProvider><Grab /></AuthProvider>);
+    render(withQc(<AuthProvider><Grab /></AuthProvider>));
     await act(async () => { await out(); });
     expect(del).toHaveBeenCalledWith("recipes-api");
   } finally {
