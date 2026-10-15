@@ -29,7 +29,7 @@ test("shows recipe cards with total time; no image renders a placeholder", async
   listRecipes.mockResolvedValue([recipe("r1", "מרק עדשים"), recipe("r2", "עוגת שמרים", { prep_minutes: null, cook_minutes: null })]);
   renderWithProviders(<FeedPage />);
   expect(await screen.findByRole("link", { name: /מרק עדשים/ })).toHaveAttribute("href", "/recipe/r1");
-  expect(screen.getByText("30 דק׳")).toBeInTheDocument();
+  expect(screen.getByText("מרקים · 30 דק׳")).toBeInTheDocument(); // caption = category · total time
   expect(screen.queryByText(/NaN|null/)).not.toBeInTheDocument();
 });
 
@@ -90,14 +90,14 @@ test("favourites page asks for favourites only", async () => {
   renderWithProviders(<FeedPage favoritesOnly />);
   await waitFor(() => expect(listRecipes).toHaveBeenCalledWith(expect.objectContaining({ favoritesOnly: true })));
   expect(await screen.findByText("עוד לא סימנת מתכונים כמועדפים")).toBeInTheDocument();
-  expect(screen.getByRole("heading", { level: 1, name: "המועדפים שלי" })).toBeInTheDocument();
 });
 
-test("feed has a single (visually hidden) h1", async () => {
+// The page h1 is rendered by Layout's large-title header (see Layout.test.tsx); the feed must not add another.
+test("feed renders no h1 of its own", async () => {
   listRecipes.mockResolvedValue([]);
   renderWithProviders(<FeedPage />);
-  expect(await screen.findByRole("heading", { level: 1, name: "המתכונים" })).toBeInTheDocument();
-  expect(screen.getAllByRole("heading", { level: 1 })).toHaveLength(1);
+  expect(await screen.findByText("עוד אין כאן מתכונים")).toBeInTheDocument();
+  expect(screen.queryByRole("heading", { level: 1 })).not.toBeInTheDocument();
 });
 
 test("load error shows a retry button that refetches", async () => {

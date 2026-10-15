@@ -57,13 +57,16 @@ export function StatusCard({ recipeId, initialStatus, duplicate }: {
 
   const done = status === "published";
   return (
-    <div className="flex flex-col gap-1 rounded-2xl bg-white p-4 shadow-sm" aria-live="polite">
-      {duplicate && <p className="text-sm text-muted">המתכון הזה כבר קיים — רשמנו שגם את/ה שיתפת.</p>}
-      <p className="font-medium">{title ?? "מתכון חדש"}</p>
-      <p className={done ? "text-green-700" : status === "failed" || status === "needs_review" ? "text-red-700" : "text-muted"}>
-        {STATUS_LABEL[status]}
-      </p>
-      {done && <Link to={`/recipe/${recipeId}`} className="inline-flex min-h-11 items-center self-start text-accent underline">לצפייה במתכון</Link>}
+    <div className="card flex items-center gap-3 rounded-xl p-3" aria-live="polite">
+      {!TERMINAL.includes(status) && <span className="size-[18px] shrink-0 animate-spin rounded-full border-[2.5px] border-accent-soft border-t-accent" aria-hidden />}
+      <div className="min-w-0 flex-1">
+        {duplicate && <p className="text-[12px] text-muted">המתכון הזה כבר קיים — רשמנו שגם את/ה שיתפת.</p>}
+        <p className="truncate text-[14px] font-semibold">{title ?? "מתכון חדש"}</p>
+        <p className={`text-[12.5px] ${done ? "text-success" : status === "failed" || status === "needs_review" ? "text-danger" : "text-muted"}`}>
+          {STATUS_LABEL[status]}
+        </p>
+      </div>
+      {done && <Link to={`/recipe/${recipeId}`} className="pressable inline-flex min-h-11 items-center px-2 text-[14px] font-semibold text-accent">לצפייה במתכון</Link>}
     </div>
   );
 }

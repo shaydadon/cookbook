@@ -2,7 +2,7 @@ import { CATEGORIES } from "../lib/categories";
 
 export function CategoryChips({ value, onChange }: { value: string | null; onChange(v: string | null): void }) {
   const chip = (active: boolean) =>
-    `min-h-11 shrink-0 rounded-full border px-4 text-sm ${active ? "border-accent bg-accent text-white" : "border-line bg-white"}`;
+    `pressable min-h-11 shrink-0 rounded-full px-4 text-[13px] font-medium ${active ? "bg-accent text-on-accent" : "card"}`;
   return (
     <div className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 [scrollbar-width:none]">
       <button type="button" className={chip(value === null)} aria-pressed={value === null} onClick={() => onChange(null)}>הכל</button>

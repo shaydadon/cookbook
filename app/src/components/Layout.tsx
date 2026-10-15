@@ -1,26 +1,74 @@
-import { NavLink, Outlet } from "react-router";
+import { useEffect, useRef, useState } from "react";
+import { NavLink, Outlet, useLocation } from "react-router";
 import { useAuth } from "../auth/AuthProvider";
-import { APP_NAME } from "../lib/app";
+import { SettingsSheet } from "./SettingsSheet";
+import { HeartIcon, HomeIcon, PlusCircleIcon, ShieldIcon } from "./ui/icons";
+
+export function titleFor(pathname: string): string | null {
+  if (pathname === "/" || pathname === "/add") return "המתכונים";
+  if (pathname === "/favorites") return "מועדפים";
+  if (pathname === "/admin") return "ניהול";
+  return null;
+}
 
 const tab = ({ isActive }: { isActive: boolean }) =>
-  `flex min-h-14 flex-1 flex-col items-center justify-center text-sm ${isActive ? "text-accent font-medium" : "text-muted"}`;
+  `pressable flex min-h-12 flex-1 flex-col items-center justify-center gap-0.5 text-[10px] font-medium ${isActive ? "text-accent" : "text-muted"}`;
 
 export function Layout() {
   const { member } = useAuth();
+  const { pathname } = useLocation();
+  const title = titleFor(pathname);
+  const [collapsed, setCollapsed] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+
+  useEffect(() => {
+    const el = document.getElementById("app-scroll");
+    if (!el) return;
+    const onScroll = () => setCollapsed(el.scrollTop > 40);
+    onScroll();
+    el.addEventListener("scroll", onScroll, { passive: true });
+    return () => el.removeEventListener("scroll", onScroll);
+  }, [pathname]);
+
+  // Each page starts at the top. /add is a sheet over the feed, so opening or closing it keeps the feed position.
+  const prevPath = useRef(pathname);
+  useEffect(() => {
+    const from = prevPath.current;
+    prevPath.current = pathname;
+    if (from === pathname || from === "/add" || pathname === "/add") return;
+    document.getElementById("app-scroll")?.scrollTo?.({ top: 0 });
+  }, [pathname]);
+
+  const initial = member?.display_name?.trim().charAt(0) || "?";
+
   return (
-    <div className="mx-auto flex min-h-dvh max-w-3xl flex-col">
-      <header className="sticky top-0 z-10 bg-paper/95 px-4 pb-2 pt-[max(0.75rem,env(safe-area-inset-top))] backdrop-blur">
-        <p className="text-xl font-bold">{APP_NAME}</p>
-      </header>
-      <main className="flex-1 px-4 pb-24">
+    <div className="flex min-h-full flex-col">
+      {title && (
+        <>
+          <div aria-hidden={!collapsed}
+            className={`frost sticky top-0 z-20 flex h-[calc(2.75rem+env(safe-area-inset-top))] items-center justify-center border-b border-line pt-[env(safe-area-inset-top)] text-[17px] font-semibold transition-opacity ${collapsed ? "opacity-100" : "pointer-events-none opacity-0"}`}>
+            {title}
+          </div>
+          <header className="-mt-[calc(2.75rem+env(safe-area-inset-top))] flex items-end justify-between px-4 pb-2 pt-[calc(env(safe-area-inset-top)+3rem)]">
+            <h1 className="text-[30px] font-extrabold leading-tight tracking-tight">{title}</h1>
+            <button type="button" aria-label="הגדרות" onClick={() => setSettingsOpen(true)}
+              className="pressable grid size-9 place-items-center rounded-full bg-accent text-sm font-bold text-on-accent">
+              {initial}
+            </button>
+          </header>
+        </>
+      )}
+      <main key={pathname} className={`page-in flex-1 pb-28 ${title ? "px-4" : ""}`}>
         <Outlet />
       </main>
-      <nav className="fixed inset-x-0 bottom-0 z-10 flex border-t border-line bg-white pb-[env(safe-area-inset-bottom)]">
-        <NavLink to="/" end className={tab}>בית</NavLink>
-        <NavLink to="/favorites" className={tab}>מועדפים</NavLink>
-        <NavLink to="/add" className={tab}>הוספה</NavLink>
-        {member?.role === "admin" && <NavLink to="/admin" className={tab}>ניהול</NavLink>}
+      <nav aria-label="ניווט ראשי"
+        className="frost fixed inset-x-0 bottom-0 z-30 flex border-t border-line pb-[env(safe-area-inset-bottom)]">
+        <NavLink to="/" end className={tab}><HomeIcon />בית</NavLink>
+        <NavLink to="/favorites" className={tab}><HeartIcon />מועדפים</NavLink>
+        <NavLink to="/add" className={tab}><PlusCircleIcon />הוספה</NavLink>
+        {member?.role === "admin" && <NavLink to="/admin" className={tab}><ShieldIcon />ניהול</NavLink>}
       </nav>
+      <SettingsSheet open={settingsOpen} onClose={() => setSettingsOpen(false)} />
     </div>
   );
 }

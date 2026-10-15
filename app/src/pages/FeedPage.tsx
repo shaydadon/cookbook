@@ -6,6 +6,7 @@ import { IosInstallHint } from "../components/IosInstallHint";
 import { PushPrompt } from "../components/PushPrompt";
 import { RecipeCard } from "../components/RecipeCard";
 import { SearchBar } from "../components/SearchBar";
+import { SkeletonCard } from "../components/ui/Skeleton";
 import { useDebounced } from "../hooks/useDebounced";
 import { useFavorites } from "../hooks/useFavorites";
 import { listRecipes, PAGE_SIZE } from "../lib/recipes";
@@ -47,29 +48,34 @@ export default function FeedPage({ favoritesOnly = false }: { favoritesOnly?: bo
 
   return (
     <div className="flex flex-col gap-3 pt-2">
-      <h1 className="sr-only">{favoritesOnly ? "המועדפים שלי" : "המתכונים"}</h1>
       {!favoritesOnly && <IosInstallHint />}
       {!favoritesOnly && <PushPrompt />}
       <SearchBar value={q} onChange={(v) => update("q", v || null)} />
       <CategoryChips value={category} onChange={(v) => update("cat", v)} />
-      {query.isPending && <p role="status" className="py-8 text-center text-muted">טוען…</p>}
+      {query.isPending && (
+        <div role="status" aria-label="טוען" className="grid grid-cols-2 gap-2.5">
+          {Array.from({ length: 6 }, (_, i) => <SkeletonCard key={i} />)}
+        </div>
+      )}
       {query.isError && (
-        <div role="alert" className="flex flex-col items-center gap-3 py-8 text-center text-red-700">
-          <p>{navigator.onLine ? "לא הצלחנו לטעון מתכונים." : "אין חיבור לאינטרנט"}</p>
-          <button type="button" onClick={() => query.refetch()} className="min-h-11 rounded-full bg-accent px-6 font-medium text-white">
+        <div role="alert" className="flex flex-col items-center gap-3 py-12 text-center">
+          <p className="text-muted">{navigator.onLine ? "לא הצלחנו לטעון מתכונים." : "אין חיבור לאינטרנט"}</p>
+          <button type="button" onClick={() => query.refetch()} className="pressable min-h-11 rounded-xl bg-accent px-6 font-semibold text-on-accent">
             נסו שוב
           </button>
         </div>
       )}
-      {query.isSuccess && !query.isPlaceholderData && recipes.length === 0 && <p className="py-12 text-center text-muted">{empty}</p>}
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+      {query.isSuccess && !query.isPlaceholderData && recipes.length === 0 && (
+        <p className="py-16 text-center text-muted">{empty}</p>
+      )}
+      <div className="grid grid-cols-2 gap-2.5">
         {recipes.map((r) => (
           <RecipeCard key={r.id} recipe={r} isFavorite={favorites.ids.has(r.id)} onToggleFavorite={() => favorites.toggle(r.id)} />
         ))}
       </div>
       <div ref={sentinel} />
       {query.hasNextPage && (
-        <button className="mx-auto min-h-11 rounded-full border border-line px-5" onClick={() => query.fetchNextPage()}>
+        <button className="pressable mx-auto min-h-11 rounded-xl bg-fill px-5 font-medium" onClick={() => query.fetchNextPage()}>
           טען עוד
         </button>
       )}

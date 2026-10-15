@@ -99,15 +99,15 @@ export function EditRecipe() {
     }
   }
 
-  const field = "rounded-xl border border-line bg-white p-3";
+  const field = "card min-h-11 w-full rounded-xl p-3 outline-none";
   return (
     <div className="flex flex-col gap-3">
-      <label htmlFor="edit-id" className="font-medium">מזהה מתכון (מהכתובת /recipe/…)</label>
+      <label htmlFor="edit-id" className="px-1 text-[13px] text-muted">מזהה מתכון (מהכתובת /recipe/…)</label>
       <input id="edit-id" dir="ltr" value={input} onChange={(e) => setInput(e.target.value.trim())} className={field} />
-      {recipe.isError && <p role="alert" className="text-red-700">המתכון לא נמצא.</p>}
+      {recipe.isError && <p role="alert" className="text-[13px] text-danger">המתכון לא נמצא.</p>}
       {recipe.data && (
         <form onSubmit={save} className="flex flex-col gap-2">
-          <p className="text-sm text-muted">סטטוס: {STATUS_LABEL[recipe.data.status]}</p>
+          <p className="px-1 text-[13px] text-muted">סטטוס: {STATUS_LABEL[recipe.data.status]}</p>
           {!editable && <p className="text-sm">המתכון בעיבוד — אפשר לערוך אחרי שיסתיים</p>}
           {(status === "needs_review" || status === "failed") && (
             <p className="text-sm">לפרסום השתמשו ב'עיבוד מחדש' בלשונית לטיפול</p>
@@ -123,20 +123,20 @@ export function EditRecipe() {
             onChange={(e) => setForm({ ...form, ingredients: e.target.value })} className={field} />
           <textarea aria-label="שלבים (שורה לכל שלב)" rows={8} value={form.steps} onChange={(e) => setForm({ ...form, steps: e.target.value })} className={field} />
           <div className="flex gap-2">
-            <button disabled={!editable} className="min-h-11 flex-1 rounded-full bg-accent text-white disabled:opacity-60">שמירה</button>
+            <button disabled={!editable} className="pressable min-h-11 rounded-xl bg-accent px-4 font-semibold text-on-accent disabled:opacity-60 flex-1">שמירה</button>
             <button type="button" disabled={recipe.data.status !== "published"} onClick={regenerateImage}
-              className="min-h-11 rounded-full border border-line px-4 disabled:opacity-60">
+              className="pressable min-h-11 rounded-xl bg-fill px-4 font-medium disabled:opacity-60">
               תמונה חדשה
             </button>
           </div>
           <button type="button" disabled={!editable || busy} onClick={remove}
-            className="min-h-11 rounded-full border border-red-700 px-4 text-red-700 disabled:opacity-60">
+            className="pressable min-h-11 rounded-xl bg-fill px-4 font-medium text-danger disabled:opacity-60">
             מחיקה
           </button>
         </form>
       )}
-      {msg && <p role="status" className="text-green-700">{msg}</p>}
-      {err && <p role="alert" className="text-red-700">{err}</p>}
+      {msg && <p role="status" className="text-[13px] text-success">{msg}</p>}
+      {err && <p role="alert" className="text-[13px] text-danger">{err}</p>}
     </div>
   );
 }

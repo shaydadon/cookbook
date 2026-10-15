@@ -36,25 +36,28 @@ export default function LoginPage() {
   }
 
   return (
-    <main className="mx-auto flex min-h-dvh max-w-md flex-col justify-center gap-6 p-6">
-      <h1 className="text-center text-3xl font-bold">{APP_NAME}</h1>
+    <main className="flex min-h-full flex-col justify-center gap-6 px-6 py-10">
+      <div className="flex flex-col items-center gap-3">
+        <img src="/pwa-192x192.png" alt="" className="size-20 rounded-[22px] shadow-lg" />
+        <h1 className="text-[28px] font-extrabold tracking-tight">{APP_NAME}</h1>
+      </div>
       {sent
-        ? <p className="rounded-2xl bg-accent-soft p-4 text-center">שלחנו קישור כניסה ל-{email}. פתחו אותו מהטלפון הזה.</p>
+        ? <p className="card rounded-2xl p-4 text-center">שלחנו קישור כניסה ל-{email}. פתחו אותו מהטלפון הזה.</p>
         : (
-          <form onSubmit={sendLink} className="flex flex-col gap-3">
-            <label htmlFor="email" className="font-medium">אימייל</label>
+          <form onSubmit={sendLink} className="flex flex-col gap-2">
+            <label htmlFor="email" className="px-1 text-[13px] text-muted">אימייל</label>
             <input id="email" type="email" required autoComplete="email" dir="ltr" value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="min-h-12 rounded-xl border border-line bg-white px-4" />
-            <button disabled={busy} className="min-h-12 rounded-full bg-accent font-medium text-white disabled:opacity-60">
+              className="card min-h-12 rounded-xl px-4 outline-none" />
+            <button disabled={busy} className="pressable mt-2 min-h-12 rounded-[14px] bg-accent font-bold text-on-accent disabled:opacity-60">
               שלחו לי קישור כניסה
             </button>
           </form>
         )}
-      {error && <p role="alert" className="text-center text-red-700">{error}</p>}
-      <div className="flex items-center gap-3 text-muted"><hr className="flex-1 border-line" />או<hr className="flex-1 border-line" /></div>
+      {error && <p role="alert" className="text-center text-[14px] text-danger">{error}</p>}
+      <div className="flex items-center gap-3 text-[13px] text-muted"><hr className="flex-1 border-line" />או<hr className="flex-1 border-line" /></div>
       <button
-        className="min-h-12 rounded-full border border-line bg-white font-medium"
+        className="pressable card min-h-12 rounded-[14px] font-semibold"
         onClick={async () => {
           setError(null);
           const { error: oErr } = await supabase.auth.signInWithOAuth({

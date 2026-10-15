@@ -37,9 +37,11 @@ test("renders grouped ingredients, numbered steps, times and attribution", async
   expect(await screen.findByRole("heading", { level: 1, name: "פשטידת תרד" })).toBeInTheDocument();
   expect(screen.getByRole("heading", { name: "לבסיס" })).toBeInTheDocument();
   expect(screen.getByLabelText("1 כוס גבינה צהובה (מגוררת)")).toBeInTheDocument();
-  expect(screen.getAllByRole("listitem").map((li) => li.textContent)).toContain("מחממים תנור ל-180 מעלות.");
+  // Steps carry a number badge, so match the step text inside the list item rather than the exact textContent.
+  expect(screen.getByText("מחממים תנור ל-180 מעלות.").closest("li")).toHaveTextContent("1מחממים תנור ל-180 מעלות.");
   expect(screen.getByText("55 דק׳")).toBeInTheDocument();
-  expect(screen.getByText("6 מנות")).toBeInTheDocument();
+  // Servings is a stat tile: value and label are separate lines.
+  expect(screen.getByText("מנות").previousElementSibling).toHaveTextContent("6");
   expect(screen.getByText("מקור: mako.co.il · שותף ע״י רחל ב-12.10.2026")).toBeInTheDocument();
   expect(screen.getByRole("link", { name: "התחילו לבשל" })).toHaveAttribute("href", "/recipe/r1/cook");
 });
@@ -63,6 +65,25 @@ test("minimal recipe renders without empty sections or null text", async () => {
   expect(screen.queryByText(/\d+ מנות/)).not.toBeInTheDocument();
   expect(screen.queryByRole("heading", { level: 3 })).not.toBeInTheDocument();
   expect(screen.queryByText(/דק׳/)).not.toBeInTheDocument();
+});
+
+test("hero has back and favourite buttons; no image shows the placeholder", async () => {
+  failWith = null;
+  current = { ...full, image_path: null };
+  renderWithProviders(<RecipePage />, { route: "/recipe/r1", path: "/recipe/:id" });
+  expect(await screen.findByRole("button", { name: "חזרה" })).toBeInTheDocument();
+  expect(screen.getByRole("button", { name: "הוספה למועדפים" })).toBeInTheDocument();
+  expect(screen.getByTestId("hero-placeholder")).toBeInTheDocument();
+  expect(screen.getByRole("link", { name: "התחילו לבשל" })).toBeInTheDocument();
+});
+
+test("stat tiles: missing servings hides only that tile", async () => {
+  failWith = null;
+  current = { ...full, servings: null, prep_minutes: 10, cook_minutes: 20, category: "ארוחת בוקר" };
+  renderWithProviders(<RecipePage />, { route: "/recipe/r1", path: "/recipe/:id" });
+  expect(await screen.findByText("30 דק׳")).toBeInTheDocument();
+  expect(screen.queryByText("מנות")).not.toBeInTheDocument();
+  expect(screen.getByText("ארוחת בוקר")).toBeInTheDocument();
 });
 
 test("not-found error shows the not-found message", async () => {

@@ -22,3 +22,6 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Visual review screenshots (e2e/screens.spec.ts)
+e2e/screenshots/

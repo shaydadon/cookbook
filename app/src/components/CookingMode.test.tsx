@@ -4,6 +4,16 @@ import { afterEach, expect, test, vi } from "vitest";
 import { CookingMode, relevantIngredients } from "./CookingMode";
 
 const steps = [{ text: "קוצצים את הבצל." }, { text: "מטגנים את הבצל עם השום." }, { text: "מגישים." }];
+
+test("always renders dark with a progress bar, even when the app is light", () => {
+  document.documentElement.dataset.theme = "light";
+  render(<CookingMode title="t" steps={steps} ingredients={[]} onExit={() => {}} />);
+  const bar = screen.getByRole("progressbar");
+  expect(bar.closest("[data-theme]")).toHaveAttribute("data-theme", "dark");
+  expect(bar).toHaveAttribute("aria-valuenow", "1");
+  expect(bar).toHaveAttribute("aria-valuemax", "3");
+  expect(screen.getByRole("button", { name: "יציאה" })).toBeInTheDocument();
+});
 const ingredients = [
   { group: null, name: "בצל", amount: "1", unit: null, note: null },
   { group: null, name: "שום", amount: "2", unit: "שיני", note: null },
@@ -60,7 +70,7 @@ test("the steps array shrinking under the current step does not crash", async ()
 test("long steps use a smaller font and the step area scrolls", () => {
   const long = "א".repeat(161);
   render(<CookingMode title="ממרח" steps={[{ text: long }, { text: "קצר" }]} ingredients={[]} onExit={() => {}} />);
-  expect(screen.getByText(long)).toHaveClass("text-2xl");
+  expect(screen.getByText(long)).toHaveClass("text-[22px]");
   expect(screen.getByTestId("swipe-area")).toHaveClass("min-h-0", "flex-1", "overflow-y-auto");
 });
 
