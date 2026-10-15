@@ -23,7 +23,7 @@ export default function App() {
               <Route path="/" element={<FeedPage key="feed" />} />
               <Route path="/favorites" element={<FeedPage key="favorites" favoritesOnly />} />
               <Route path="/recipe/:id" element={<RecipePage />} />
-              <Route path="/add" element={<AddRecipePage />} />
+              <Route path="/add" element={<><FeedPage key="feed" /><AddRecipePage /></>} />
               <Route path="/admin" element={<AdminPage />} />
             </Route>
           </Route>

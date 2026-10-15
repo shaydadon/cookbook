@@ -1,5 +1,6 @@
 import { screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { Route, Routes } from "react-router";
 import { beforeEach, expect, test, vi } from "vitest";
 import { renderWithProviders } from "../test/render";
 import AddRecipePage from "./AddRecipePage";
@@ -68,8 +69,22 @@ test("offline on submit says there is no connection and keeps the link", async (
   }
 });
 
-test("the page has a single h1", () => {
+// The sheet title is the heading (an h2 in the dialog); Layout owns the page h1.
+test("renders as a dialog titled מתכון חדש with no h1 of its own", () => {
   renderWithProviders(<AddRecipePage />, { route: "/add" });
-  expect(screen.getAllByRole("heading", { level: 1 })).toHaveLength(1);
-  expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("הוספת מתכון");
+  expect(screen.getByRole("dialog", { name: "מתכון חדש" })).toBeInTheDocument();
+  expect(screen.getByLabelText("קישור למתכון")).toBeInTheDocument();
+  expect(screen.queryByRole("heading", { level: 1 })).not.toBeInTheDocument();
+});
+
+test("opened directly (share target), ביטול closes to the feed", async () => {
+  renderWithProviders(
+    <Routes>
+      <Route path="/add" element={<AddRecipePage />} />
+      <Route path="/" element={<p>FEED</p>} />
+    </Routes>,
+    { route: "/add?text=https%3A%2F%2Fa.test%2Fr" },
+  );
+  await userEvent.click(screen.getByRole("button", { name: "ביטול" }));
+  expect(await screen.findByText("FEED")).toBeInTheDocument();
 });
