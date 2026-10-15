@@ -18,8 +18,8 @@ export default function App() {
         <Route element={<RequireMember />}>
           <Route path="/recipe/:id/cook" element={<CookingPage />} />
           <Route element={<Layout />}>
-            <Route path="/" element={<FeedPage />} />
-            <Route path="/favorites" element={<FeedPage favoritesOnly />} />
+            <Route path="/" element={<FeedPage key="feed" />} />
+            <Route path="/favorites" element={<FeedPage key="favorites" favoritesOnly />} />
             <Route path="/recipe/:id" element={<RecipePage />} />
             <Route path="/add" element={<AddRecipePage />} />
             <Route path="/admin" element={<AdminPage />} />

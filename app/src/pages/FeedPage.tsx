@@ -51,7 +51,7 @@ export default function FeedPage({ favoritesOnly = false }: { favoritesOnly?: bo
       <CategoryChips value={category} onChange={(v) => update("cat", v)} />
       {query.isPending && <p role="status" className="py-8 text-center text-muted">טוען…</p>}
       {query.isError && <p role="alert" className="py-8 text-center text-red-700">לא הצלחנו לטעון מתכונים.</p>}
-      {query.isSuccess && recipes.length === 0 && <p className="py-12 text-center text-muted">{empty}</p>}
+      {query.isSuccess && !query.isPlaceholderData && recipes.length === 0 && <p className="py-12 text-center text-muted">{empty}</p>}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
         {recipes.map((r) => (
           <RecipeCard key={r.id} recipe={r} isFavorite={favorites.ids.has(r.id)} onToggleFavorite={() => favorites.toggle(r.id)} />

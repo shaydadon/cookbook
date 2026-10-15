@@ -52,7 +52,7 @@ test("favourite toggle calls setFavorite with the member id", async () => {
   listRecipes.mockResolvedValue([recipe("r1", "מרק עדשים")]);
   renderWithProviders(<FeedPage />);
   await userEvent.click(await screen.findByRole("button", { name: "הוספה למועדפים" }));
-  expect(setFavorite).toHaveBeenCalledWith("m1", "r1", true);
+  await waitFor(() => expect(setFavorite).toHaveBeenCalledWith("m1", "r1", true));
 });
 
 test("search passes the exact typed string through after the debounce", async () => {
@@ -68,8 +68,21 @@ test("un-favouriting on the favourites page calls setFavorite(false) and refetch
   const btn = await screen.findByRole("button", { name: "הסרה מהמועדפים" });
   const callsBefore = listRecipes.mock.calls.length;
   await userEvent.click(btn);
-  expect(setFavorite).toHaveBeenCalledWith("m1", "r2", false);
+  await waitFor(() => expect(setFavorite).toHaveBeenCalledWith("m1", "r2", false));
   await waitFor(() => expect(listRecipes.mock.calls.length).toBeGreaterThan(callsBefore));
+});
+
+test("empty state is hidden while a new search is pending after an empty result", async () => {
+  listRecipes.mockResolvedValueOnce([]);
+  renderWithProviders(<FeedPage />);
+  expect(await screen.findByText("עוד אין כאן מתכונים")).toBeInTheDocument();
+  let resolve!: (v: Recipe[]) => void;
+  listRecipes.mockReturnValue(new Promise<Recipe[]>((r) => { resolve = r; }));
+  await userEvent.type(screen.getByRole("searchbox"), "מרק");
+  await waitFor(() => expect(listRecipes).toHaveBeenLastCalledWith(expect.objectContaining({ q: "מרק" })), { timeout: 2000 });
+  expect(screen.queryByText("עוד אין כאן מתכונים")).not.toBeInTheDocument();
+  resolve([]);
+  expect(await screen.findByText("עוד אין כאן מתכונים")).toBeInTheDocument();
 });
 
 test("favourites page asks for favourites only", async () => {
