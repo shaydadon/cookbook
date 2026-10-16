@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>מדיניות פרטיות · המתכונים שלנו</title>
+  <link rel="icon" href="/favicon.ico" />
+  <style>
+    :root { --bg: #F2F2F7; --surface: #FFFFFF; --text: #000000; --muted: #6C6C70; --accent: #FF9500; color-scheme: light dark; }
+    @media (prefers-color-scheme: dark) {
+      :root { --bg: #1E242C; --surface: #283039; --text: #E4E8EE; --muted: #8D97A5; }
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: var(--bg); color: var(--text);
+      font: 16px/1.65 "Heebo", -apple-system, "SF Pro Text", system-ui, sans-serif; }
+    main { max-width: 680px; margin: 0 auto; padding: 40px 16px 64px; }
+    header { display: flex; align-items: center; gap: 12px; margin-bottom: 24px; }
+    header img { width: 48px; height: 48px; border-radius: 12px; }
+    h1 { margin: 0; font-size: 26px; font-weight: 800; letter-spacing: -0.01em; }
+    .updated { margin: 2px 0 0; color: var(--muted); font-size: 14px; }
+    section { background: var(--surface); border-radius: 14px; padding: 16px 18px; margin-bottom: 12px; }
+    h2 { margin: 0 0 6px; font-size: 17px; font-weight: 700; }
+    p, ul { margin: 0; }
+    ul { padding-inline-start: 20px; }
+    li + li { margin-top: 4px; }
+    a { color: var(--accent); }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <img src="/pwa-192x192.png" alt="" />
+      <div>
+        <h1>מדיניות פרטיות</h1>
+        <p class="updated">המתכונים שלנו · עודכן באוקטובר 2026</p>
+      </div>
+    </header>
+
+    <section>
+      <h2>מה זו האפליקציה</h2>
+      <p>"המתכונים שלנו" היא אפליקציה פרטית לחברי קבוצת הוואטסאפ המשפחתית בלבד. היא אוספת מתכונים מקישורים שחברי הקבוצה משתפים ומציגה אותם כספר מתכונים.</p>
+    </section>
+
+    <section>
+      <h2>איזה מידע נשמר</h2>
+      <ul>
+        <li>כתובת האימייל והשם שלכם, כדי לזהות שאתם חברי הקבוצה. בכניסה עם Google נשמרים רק השם והאימייל מחשבון Google.</li>
+        <li>המתכונים והקישורים שאתם משתפים, ומי שיתף כל מתכון.</li>
+        <li>המתכונים שסימנתם כמועדפים.</li>
+        <li>אם אישרתם התראות — מזהה טכני של המכשיר לשליחת התראה על מתכון חדש.</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>איך המידע משמש</h2>
+      <p>המידע משמש רק להפעלת האפליקציה: כניסה, הצגת המתכונים, מועדפים והתראות. אין פרסומות, אין מעקב ואין מכירה או מסירה של מידע לאף אחד.</p>
+    </section>
+
+    <section>
+      <h2>שירותים שאנחנו נעזרים בהם</h2>
+      <ul>
+        <li>Supabase — שמירת הנתונים והכניסה לחשבון (שרתים באיחוד האירופי).</li>
+        <li>Vercel — אירוח האפליקציה.</li>
+        <li>Anthropic ו-OpenAI — ניסוח מחדש של טקסט המתכון ויצירת תמונה למתכון. נשלח אליהם רק תוכן המתכון, לא פרטים אישיים.</li>
+        <li>Google — רק אם בחרתם להיכנס עם Google.</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>מחיקת מידע</h2>
+      <p>אפשר להתנתק בכל רגע מתוך מסך ההגדרות. כדי למחוק את החשבון והמידע שלכם, פנו למנהל הקבוצה בוואטסאפ והמידע יימחק.</p>
+    </section>
+
+    <p class="updated"><a href="/">חזרה לאפליקציה</a></p>
+  </main>
+</body>
+</html>

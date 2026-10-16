@@ -2,10 +2,10 @@
 import { CacheableResponsePlugin } from "workbox-cacheable-response";
 import { ExpirationPlugin } from "workbox-expiration";
 import { cleanupOutdatedCaches, createHandlerBoundToURL, precacheAndRoute } from "workbox-precaching";
-import { NavigationRoute, registerRoute } from "workbox-routing";
+import { registerRoute } from "workbox-routing";
 import { CacheFirst, NetworkFirst } from "workbox-strategies";
 import { RECIPE_IMAGES_CACHE, RECIPES_API_CACHE } from "./lib/cache-names";
-import { isRecipesApiRequest, notificationTarget } from "./lib/sw-helpers";
+import { isAppNavigation, isRecipesApiRequest, notificationTarget } from "./lib/sw-helpers";
 
 declare let self: ServiceWorkerGlobalScope;
 
@@ -14,7 +14,9 @@ self.addEventListener("activate", (e) => e.waitUntil(self.clients.claim()));
 
 precacheAndRoute(self.__WB_MANIFEST);
 cleanupOutdatedCaches();
-registerRoute(new NavigationRoute(createHandlerBoundToURL("index.html")));
+// App routes get the shell; public static pages (privacy policy) go to the network as plain files.
+const appShell = createHandlerBoundToURL("index.html");
+registerRoute(({ request, url }) => request.mode === "navigate" && isAppNavigation(url), appShell);
 
 // Opened recipes, their shares and feed pages: readable offline (cleared on sign-out / user change by the app).
 // Deliberate deviation from spec §6 ("stale-while-revalidate"): NetworkFirst keeps online data fresh

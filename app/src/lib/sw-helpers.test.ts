@@ -1,5 +1,5 @@
 import { expect, test } from "vitest";
-import { isRecipesApiRequest, notificationTarget } from "./sw-helpers";
+import { isAppNavigation, isRecipesApiRequest, notificationTarget } from "./sw-helpers";
 
 const api = "http://127.0.0.1:54321/rest/v1";
 const u = (s: string) => new URL(api + s);
@@ -26,4 +26,11 @@ test("notificationTarget keeps same-origin paths and rejects other origins", () 
   expect(notificationTarget(undefined, o)).toBe("https://app.example/");
   expect(notificationTarget("https://evil.example/x", o)).toBe("/");
   expect(notificationTarget("javascript:alert(1)", o)).toBe("/");
+});
+
+test("static public pages (privacy policy) are not routed to the app shell", () => {
+  expect(isAppNavigation(new URL("https://app.test/privacy.html"))).toBe(false);
+  expect(isAppNavigation(new URL("https://app.test/"))).toBe(true);
+  expect(isAppNavigation(new URL("https://app.test/recipe/abc"))).toBe(true);
+  expect(isAppNavigation(new URL("https://app.test/add?text=x"))).toBe(true);
 });

@@ -22,3 +22,11 @@ export function notificationTarget(url: string | undefined, origin: string): str
     return "/";
   }
 }
+
+/** Public static pages served as plain files (e.g. the privacy policy Google links to), never as the app shell. */
+const STATIC_PAGES = ["/privacy.html"];
+
+/** True for navigations the service worker answers with the app shell (index.html). */
+export function isAppNavigation(url: URL): boolean {
+  return !STATIC_PAGES.includes(url.pathname);
+}
