@@ -38,10 +38,10 @@ export function CookingMode({ title, steps, ingredients, onExit }: {
     <div data-theme="dark"
       className="fixed inset-0 z-50 flex flex-col bg-bg pb-[env(safe-area-inset-bottom)] pt-[env(safe-area-inset-top)] text-ink">
       <div role="progressbar" aria-label="התקדמות" aria-valuemin={1} aria-valuenow={idx + 1} aria-valuemax={steps.length}
-        className="flex gap-1 px-4 pt-3">
+        className="flex gap-1 px-4 pt-3 desk:mx-auto desk:w-full desk:max-w-[760px]">
         {steps.map((_, k) => <span key={k} className={`h-[3px] flex-1 rounded-full ${k <= idx ? "bg-accent" : "bg-fill"}`} />)}
       </div>
-      <header className="flex items-center justify-between gap-3 px-4 py-3">
+      <header className="flex items-center justify-between gap-3 px-4 py-3 desk:mx-auto desk:w-full desk:max-w-[760px]">
         <div className="min-w-0">
           <p className="text-[13px] text-muted" aria-live="polite">שלב {idx + 1} מתוך {steps.length}</p>
           <h1 className="line-clamp-1 text-[15px] font-semibold">{title}</h1>
@@ -66,7 +66,7 @@ export function CookingMode({ title, steps, ingredients, onExit }: {
           if (dx < -60) prev();
         }}
       >
-        <div className="my-auto flex flex-col gap-6 py-4">
+        <div className="my-auto flex flex-col gap-6 py-4 desk:mx-auto desk:w-full desk:max-w-[760px] desk:px-4">
           <p className={`${step.text.length > 160 ? "text-[22px]" : "text-[26px]"} font-semibold leading-snug`}>{step.text}</p>
           {related.length > 0 && (
             <ul className="flex flex-wrap gap-2">
@@ -75,7 +75,7 @@ export function CookingMode({ title, steps, ingredients, onExit }: {
           )}
         </div>
       </div>
-      <nav className="flex gap-3 p-4">
+      <nav className="flex gap-3 p-4 desk:mx-auto desk:w-full desk:max-w-[760px]">
         {idx < last
           ? <button onClick={next} className="pressable min-h-[52px] flex-1 rounded-[14px] bg-accent text-[17px] font-bold text-on-accent">הבא</button>
           : <button onClick={onExit} className="pressable min-h-[52px] flex-1 rounded-[14px] bg-accent text-[17px] font-bold text-on-accent">סיימתי</button>}

@@ -4,6 +4,7 @@ import { beforeEach, expect, test, vi } from "vitest";
 import type { Recipe } from "../lib/types";
 import { renderWithProviders } from "../test/render";
 import FeedPage from "./FeedPage";
+import { stubDesktop } from "../test/media";
 
 const listRecipes = vi.fn();
 const setFavorite = vi.fn();
@@ -117,5 +118,18 @@ test("load error while offline says there is no connection", async () => {
     expect(await screen.findByRole("alert")).toHaveTextContent("אין חיבור לאינטרנט");
   } finally {
     spy.mockRestore();
+  }
+});
+
+test("on desktop the category chips give way to the sidebar's category list", async () => {
+  stubDesktop(true);
+  try {
+    listRecipes.mockResolvedValue([]);
+    renderWithProviders(<FeedPage />);
+    expect(await screen.findByText("עוד אין כאן מתכונים")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "מרקים" })).not.toBeInTheDocument();
+    expect(screen.getByRole("searchbox")).toBeInTheDocument();
+  } finally {
+    vi.unstubAllGlobals();
   }
 });

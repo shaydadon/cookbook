@@ -9,7 +9,10 @@ import { SearchBar } from "../components/SearchBar";
 import { SkeletonCard } from "../components/ui/Skeleton";
 import { useDebounced } from "../hooks/useDebounced";
 import { useFavorites } from "../hooks/useFavorites";
+import { useIsDesktop } from "../hooks/useIsDesktop";
 import { listRecipes, PAGE_SIZE } from "../lib/recipes";
+
+const GRID = "grid grid-cols-2 gap-2.5 desk:grid-cols-[repeat(auto-fill,minmax(210px,1fr))] desk:gap-4";
 
 export default function FeedPage({ favoritesOnly = false }: { favoritesOnly?: boolean }) {
   const [params, setParams] = useSearchParams();
@@ -17,6 +20,7 @@ export default function FeedPage({ favoritesOnly = false }: { favoritesOnly?: bo
   const category = params.get("cat");
   const debouncedQ = useDebounced(q, 300);
   const favorites = useFavorites();
+  const isDesktop = useIsDesktop();
 
   const update = (key: string, value: string | null) => {
     const next = new URLSearchParams(params);
@@ -50,10 +54,13 @@ export default function FeedPage({ favoritesOnly = false }: { favoritesOnly?: bo
     <div className="flex flex-col gap-3 pt-2">
       {!favoritesOnly && <IosInstallHint />}
       {!favoritesOnly && <PushPrompt />}
-      <SearchBar value={q} onChange={(v) => update("q", v || null)} />
-      <CategoryChips value={category} onChange={(v) => update("cat", v)} />
+      <div className="desk:max-w-md">
+        <SearchBar value={q} onChange={(v) => update("q", v || null)} />
+      </div>
+      {/* on desktop the categories live in the sidebar (as ?cat= links) */}
+      {!isDesktop && <CategoryChips value={category} onChange={(v) => update("cat", v)} />}
       {query.isPending && (
-        <div role="status" aria-label="טוען" className="grid grid-cols-2 gap-2.5">
+        <div role="status" aria-label="טוען" className={GRID}>
           {Array.from({ length: 6 }, (_, i) => <SkeletonCard key={i} />)}
         </div>
       )}
@@ -68,7 +75,7 @@ export default function FeedPage({ favoritesOnly = false }: { favoritesOnly?: bo
       {query.isSuccess && !query.isPlaceholderData && recipes.length === 0 && (
         <p className="py-16 text-center text-muted">{empty}</p>
       )}
-      <div className="grid grid-cols-2 gap-2.5">
+      <div className={GRID}>
         {recipes.map((r) => (
           <RecipeCard key={r.id} recipe={r} isFavorite={favorites.ids.has(r.id)} onToggleFavorite={() => favorites.toggle(r.id)} />
         ))}

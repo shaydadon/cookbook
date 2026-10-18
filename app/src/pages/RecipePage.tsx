@@ -52,9 +52,11 @@ export default function RecipePage() {
     r.category ? { icon: null, value: r.category, label: "קטגוריה" } : null,
   ].filter(Boolean) as { icon: ReactNode; value: string; label: string }[];
 
+  // Phones: photo, then a content sheet. Desktop: two columns — photo above the ingredients, and the
+  // title/details above the method — via grid areas (the sheet wrapper becomes display: contents).
   return (
-    <article>
-      <div className="relative h-[40vh] min-h-56 bg-accent-soft">
+    <article className="desk:grid desk:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)] desk:grid-rows-[auto_auto_1fr] desk:gap-x-10 desk:pb-24 desk:[grid-template-areas:'hero_head'_'hero_steps'_'ingr_steps']">
+      <div className="relative h-[40vh] min-h-56 bg-accent-soft desk:h-[380px] desk:overflow-hidden desk:rounded-2xl desk:[grid-area:hero]">
         {img
           ? <img src={img} alt="" crossOrigin="anonymous" className="size-full object-cover" />
           : <div data-testid="hero-placeholder" className="grid size-full place-items-center text-7xl" aria-hidden>🍽️</div>}
@@ -64,8 +66,9 @@ export default function RecipePage() {
         </div>
       </div>
 
-      <div className="relative -mt-6 rounded-t-3xl bg-surface px-4 pb-32 pt-5">
-        <h1 className="text-[22px] font-extrabold leading-tight tracking-tight">{r.title}</h1>
+      <div className="relative -mt-6 rounded-t-3xl bg-surface px-4 pb-32 pt-5 desk:contents">
+        <div className="desk:[grid-area:head]">
+        <h1 className="text-[22px] desk:text-[32px] font-extrabold leading-tight tracking-tight">{r.title}</h1>
         <a href={r.source_url} target="_blank" rel="noopener noreferrer" className="mt-1 block text-[12.5px] text-muted underline-offset-2 hover:underline">
           {formatAttribution(r, shares.data?.[0] ?? null)}
         </a>
@@ -86,8 +89,9 @@ export default function RecipePage() {
             {r.tags.map((t) => <span key={t} className="rounded-full bg-accent-soft px-2.5 py-1 text-[12px] text-accent">{t}</span>)}
           </div>
         )}
+        </div>
 
-        <section className="mt-6">
+        <section className="mt-6 desk:[grid-area:ingr]">
           <h2 className="mb-1 text-[17px] font-bold">מרכיבים</h2>
           {groups.map((g, gi) => (
             <div key={gi} className="mb-2">
@@ -116,7 +120,7 @@ export default function RecipePage() {
           ))}
         </section>
 
-        <section className="mt-5">
+        <section className="mt-5 desk:mt-6 desk:[grid-area:steps]">
           <h2 className="mb-2 text-[17px] font-bold">אופן ההכנה</h2>
           <ol className="flex flex-col gap-3">
             {r.steps.map((s, i) => (
@@ -130,7 +134,7 @@ export default function RecipePage() {
       </div>
 
       <Link to={`/recipe/${r.id}/cook`}
-        className="pressable fixed inset-x-4 bottom-[calc(env(safe-area-inset-bottom)+4.25rem)] z-20 grid h-[50px] place-items-center rounded-[14px] bg-accent text-[16px] font-bold text-on-accent shadow-[0_8px_20px_rgba(255,149,0,0.35)]">
+        className="pressable fixed inset-x-4 bottom-[calc(env(safe-area-inset-bottom)+4.25rem)] z-20 grid h-[50px] place-items-center rounded-[14px] desk:inset-x-auto desk:bottom-8 desk:left-8 desk:px-10 bg-accent text-[16px] font-bold text-on-accent shadow-[0_8px_20px_rgba(255,149,0,0.35)]">
         התחילו לבשל
       </Link>
     </article>
