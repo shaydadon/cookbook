@@ -1,4 +1,4 @@
-import { extractFromHtml } from "./extract.ts";
+import { extractFromHtml, fullPostText } from "./extract.ts";
 import { isPublicHttpUrl, type SafeUrlOptions } from "./safe-url.ts";
 import type { Platform } from "./types.ts";
 import { BROWSER_HEADERS } from "./url.ts";
@@ -7,6 +7,18 @@ export const MAX_RAW_CONTENT = 15000;
 export const MAX_HTML_BYTES = 2_000_000;
 export const FETCH_TIMEOUT_MS = 15000;
 const MIN_USEFUL_CHARS = 40;
+
+/**
+ * Facebook answers a cookie-less browser with HTTP 400, but serves crawlers the public post, including
+ * the full caption (needed: og:description stops after ~200 characters, mid-ingredients).
+ */
+const CRAWLER_HEADERS: Record<string, string> = {
+  "User-Agent": "Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)",
+  "Accept-Language": "he-IL,he;q=0.9,en;q=0.8",
+};
+const HEADERS_FOR: Partial<Record<Platform, Record<string, string>>> = { facebook: CRAWLER_HEADERS };
+
+const LINK_RE = /https?:\/\/\S+/gi;
 
 /** Reads at most maxBytes of the body, then cancels the stream. */
 export async function readCapped(res: Response, maxBytes: number): Promise<string> {
@@ -99,7 +111,7 @@ export async function fetchSource(
 
   try {
     const res = await fetchPublic(input.url, {
-      headers: BROWSER_HEADERS,
+      headers: HEADERS_FOR[input.platform] ?? BROWSER_HEADERS,
       signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
     }, fetchFn, opts);
     if (res.status === 429 || res.status >= 500) {
@@ -113,10 +125,13 @@ export async function fetchSource(
       } else if (input.platform === "web") {
         if (ex.title) parts.push(`כותרת: ${ex.title}`);
         if (ex.description) parts.push(`תיאור: ${ex.description}`);
-        if (ex.text) parts.push(`תוכן העמוד:\n${ex.text}`);
+        // the article body is the recipe itself; the first <article> on news sites is often a promo block
+        if (ex.articleBody) parts.push(`תוכן הכתבה:\n${ex.articleBody}`);
+        else if (ex.text) parts.push(`תוכן העמוד:\n${ex.text}`);
       } else if (ex.description) {
-        // social pages: the caption lives in og:description; the body is login-wall noise
-        parts.push(`כיתוב הפוסט: ${ex.description}`);
+        // social pages: the caption lives in og:description (truncated) and in full in the page data;
+        // the body is login-wall noise
+        parts.push(`כיתוב הפוסט: ${fullPostText(html, ex.description) ?? ex.description}`);
       }
     } else {
       await res.body?.cancel();
@@ -129,7 +144,9 @@ export async function fetchSource(
   const fromSource = parts.join("\n\n").trim();
   const message = input.messageText?.trim() ?? "";
 
-  if (fromSource.length < MIN_USEFUL_CHARS && message.length < MIN_USEFUL_CHARS) {
+  // A message that is only the shared link carries no recipe; don't send it on as if it were content.
+  const messageText = message.replace(LINK_RE, "").trim();
+  if (fromSource.length < MIN_USEFUL_CHARS && messageText.length < MIN_USEFUL_CHARS) {
     if (networkError) throw networkError;
     return null;
   }

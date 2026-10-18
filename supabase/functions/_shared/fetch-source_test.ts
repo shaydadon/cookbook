@@ -164,3 +164,33 @@ Deno.test("readCapped stops reading a huge streamed body", async () => {
   assert(text.length > 0);
   assert(sent < 3 * 1024 * 1024);
 });
+
+Deno.test("web page: JSON-LD article body is used instead of unrelated <article> junk", async () => {
+  const ld = { "@type": "NewsArticle", articleBody: "מצרכים: 200 גרם פרגיות, 1/2 כוס קשיו. אופן ההכנה: מטגנים ומגישים עם אורז." };
+  const f = (async () => htmlResponse(
+    `<script type="application/ld+json">${JSON.stringify(ld)}</script><article>פרסומת: אסם-שדרות</article>`,
+  )) as typeof fetch;
+  const out = await fetchSource({ url: "https://www.israelhayom.co.il/food/recipes/article/1", platform: "web", messageText: null }, f);
+  assertStringIncludes(out!, "200 גרם פרגיות");
+  assert(!out!.includes("אסם-שדרות"));
+});
+
+Deno.test("facebook: asks as a crawler and uses the full post text, not the truncated preview", async () => {
+  const uas: string[] = [];
+  const full = "עוגיות שיבולת שועל\nמצרכים: כוס שיבולת שועל, 2 ביצים, חצי כוס סוכר\nאופן הכנה: מערבבים ואופים 12 דקות ב-180 מעלות";
+  const f = (async (_input: string | URL | Request, init?: RequestInit) => {
+    uas.push(new Headers(init?.headers).get("user-agent") ?? "");
+    return htmlResponse(
+      `<meta property="og:description" content="עוגיות שיבולת שועל מצרכים: כוס שיבולת שועל..." /><script>{"text":${JSON.stringify(full)}}</script>`,
+    );
+  }) as typeof fetch;
+  const out = await fetchSource({ url: "https://www.facebook.com/share/v/x/", platform: "facebook", messageText: null }, f);
+  assertStringIncludes(out!, "אופן הכנה: מערבבים ואופים 12 דקות");
+  assert(/bot|crawler|externalhit/i.test(uas[0]), `crawler user agent expected, got ${uas[0]}`);
+});
+
+Deno.test("a WhatsApp message that is only the link does not count as recipe content", async () => {
+  const f = (async () => htmlResponse("Access Denied", 403)) as typeof fetch;
+  const url = "https://www.israelhayom.co.il/food/recipes/article/21615142?shem=dsdf%2Csharefoc";
+  assertEquals(await fetchSource({ url, platform: "web", messageText: url }, f), null);
+});
