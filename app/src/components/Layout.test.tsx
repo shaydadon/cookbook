@@ -1,7 +1,8 @@
-import { screen } from "@testing-library/react";
+import { screen, within } from "@testing-library/react";
 import { Route, Routes } from "react-router";
 import userEvent from "@testing-library/user-event";
-import { expect, test, vi } from "vitest";
+import { afterEach, describe, expect, test, vi } from "vitest";
+import { stubDesktop } from "../test/media";
 import { renderWithProviders, TEST_ADMIN, TEST_MEMBER } from "../test/render";
 import { Layout, titleFor } from "./Layout";
 
@@ -63,4 +64,28 @@ test("the collapsed bar grows by the safe-area inset so it fits under a notch", 
   renderWithProviders(shell, { member: TEST_MEMBER });
   const bar = screen.getAllByText("המתכונים").find((el) => el.tagName === "DIV")!;
   expect(bar.className).toContain("h-[calc(2.75rem+env(safe-area-inset-top))]");
+});
+
+describe("on desktop", () => {
+  afterEach(() => vi.unstubAllGlobals());
+
+  test("navigation is a sidebar holding the tabs, the categories and settings", () => {
+    stubDesktop(true);
+    renderWithProviders(shell, { member: TEST_ADMIN });
+    const nav = screen.getByRole("navigation", { name: "ניווט ראשי" });
+    for (const name of ["בית", "מועדפים", "הוספה", "ניהול"]) expect(within(nav).getByRole("link", { name })).toBeInTheDocument();
+    expect(within(nav).getByRole("link", { name: "מרקים" })).toHaveAttribute("href", "/?cat=%D7%9E%D7%A8%D7%A7%D7%99%D7%9D");
+    expect(within(nav).getByRole("button", { name: "הגדרות" })).toBeInTheDocument();
+    // one settings control, one h1 — the phone avatar is not rendered as well
+    expect(screen.getAllByRole("button", { name: "הגדרות" })).toHaveLength(1);
+    expect(screen.getAllByRole("heading", { level: 1 })).toHaveLength(1);
+  });
+
+  test("the selected category is marked current in the sidebar", () => {
+    stubDesktop(true);
+    renderWithProviders(shell, { member: TEST_MEMBER, route: "/?cat=%D7%9E%D7%A8%D7%A7%D7%99%D7%9D" });
+    const nav = screen.getByRole("navigation", { name: "ניווט ראשי" });
+    expect(within(nav).getByRole("link", { name: "מרקים" })).toHaveAttribute("aria-current", "page");
+    expect(within(nav).getByRole("link", { name: "בית" })).not.toHaveAttribute("aria-current");
+  });
 });

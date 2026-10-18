@@ -20,3 +20,10 @@ test("the transformed frame does not scroll; an inner element does", () => {
   expect(frame.className).not.toMatch(/overflow-y-auto/);
   expect(scroller.className).not.toMatch(/translateZ/);
 });
+
+test("from the desktop breakpoint the frame is the full window, not a phone-width column", () => {
+  render(<AppFrame><p>x</p></AppFrame>);
+  const frame = document.getElementById("app-scroll")!.parentElement!;
+  expect(frame.className).toMatch(/desk:max-w-none/);
+  expect(frame.className).toMatch(/max-\[899px\]:rounded-3xl/); // the floating phone look is only for tablets
+});
