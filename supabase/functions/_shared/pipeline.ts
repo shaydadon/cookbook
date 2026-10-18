@@ -29,6 +29,21 @@ export function resumeStatus(r: Pick<RecipeRow, "raw_content" | "title">): "queu
   return "imaging";
 }
 
+/**
+ * What an admin retry changes. Pasted text replaces the content and is rewritten. Without it, a
+ * needs_review recipe is fetched again: its saved content is what proved insufficient, so reusing it would
+ * fail the same way. Other failures (e.g. the image step) resume from the first missing output.
+ */
+export function retryPatch(
+  r: Pick<RecipeRow, "status" | "raw_content" | "title">,
+  pasted: string | null | undefined,
+): { status: "queued" | "rewriting" | "imaging"; raw_content?: string | null; title?: null } {
+  const text = pasted?.trim();
+  if (text) return { status: "rewriting", raw_content: text.slice(0, 15000), title: null };
+  if (r.status === "needs_review") return { status: "queued", raw_content: null, title: null };
+  return { status: resumeStatus(r) };
+}
+
 async function runStep(r: RecipeRow, deps: PipelineDeps): Promise<RecipePatch> {
   switch (r.status) {
     case "queued": {

@@ -2,7 +2,7 @@ import { getMember } from "../_shared/auth.ts";
 import { serviceClient } from "../_shared/db.ts";
 import { buildDeps } from "../_shared/deps.ts";
 import { background, json, preflight, withErrors } from "../_shared/http.ts";
-import { resumeStatus } from "../_shared/pipeline.ts";
+import { retryPatch } from "../_shared/pipeline.ts";
 import { kickWorker } from "../_shared/worker.ts";
 
 Deno.serve(withErrors(async (req) => {
@@ -28,16 +28,14 @@ Deno.serve(withErrors(async (req) => {
       if (recipe.status === "published") {
         return json({ error: "published", message: "מתכון שפורסם — השתמשו ביצירת תמונה חדשה" }, 409);
       }
-      const pasted = body.raw_content?.trim();
-      const status = pasted ? "rewriting" : resumeStatus(recipe);
+      // Pasted text clears the title on purpose, so the rewrite step refills it from the new text.
+      const patch = retryPatch(recipe, body.raw_content);
       const { error } = await db.from("recipes").update({
-        status, attempts: 0, claims: 0, error: null, next_attempt_at: new Date().toISOString(), locked_until: null,
-        // Pasted text clears the title on purpose, so the rewrite step refills it from the new text.
-        ...(pasted ? { raw_content: pasted.slice(0, 15000), title: null } : {}),
+        ...patch, attempts: 0, claims: 0, error: null, next_attempt_at: new Date().toISOString(), locked_until: null,
       }).eq("id", recipe.id);
       if (error) return json({ error: error.message }, 500);
       background(kickWorker());
-      return json({ status });
+      return json({ status: patch.status });
     }
     case "regenerate-image": {
       // Only for published recipes: on an in-flight row this would race the worker's own imaging step.

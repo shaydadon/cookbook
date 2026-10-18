@@ -1,5 +1,5 @@
 import { assertEquals, assertRejects, assertStringIncludes } from "jsr:@std/assert@1";
-import { advanceRecipe, normalizeTags, type PipelineDeps, resumeStatus } from "./pipeline.ts";
+import { advanceRecipe, normalizeTags, type PipelineDeps, resumeStatus, retryPatch } from "./pipeline.ts";
 import type { RecipeAi } from "./recipe-schema.ts";
 import type { RecipeRow } from "./types.ts";
 
@@ -113,4 +113,24 @@ Deno.test("resumeStatus picks the first missing output", () => {
 
 Deno.test("normalizeTags trims, dedupes, drops empties, caps at 5", () => {
   assertEquals(normalizeTags([" א ", "א", "", "ב", "ג", "ד", "ה", "ו"]), ["א", "ב", "ג", "ד", "ה"]);
+});
+
+// Admin "retry" (עיבוד מחדש) without pasted text.
+Deno.test("retryPatch: a needs_review recipe fetches its link again instead of reusing the old content", () => {
+  const p = retryPatch({ status: "needs_review", raw_content: "הודעת הוואטסאפ ששותפה עם הקישור:\nhttps://www.facebook.com/share/v/x/", title: null }, null);
+  assertEquals(p.status, "queued");
+  assertEquals(p.raw_content, null);
+  assertEquals(p.title, null);
+});
+
+Deno.test("retryPatch: a failed recipe resumes from its first missing step", () => {
+  assertEquals(retryPatch({ status: "failed", raw_content: "טקסט", title: "עוגה" }, null).status, "imaging");
+  assertEquals("raw_content" in retryPatch({ status: "failed", raw_content: "טקסט", title: "עוגה" }, null), false);
+});
+
+Deno.test("retryPatch: pasted text replaces the content and is rewritten", () => {
+  const p = retryPatch({ status: "needs_review", raw_content: "old", title: null }, "  מצרכים: קמח. אופן הכנה: אופים.  ");
+  assertEquals(p.status, "rewriting");
+  assertEquals(p.raw_content, "מצרכים: קמח. אופן הכנה: אופים.");
+  assertEquals(p.title, null);
 });
