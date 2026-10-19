@@ -33,7 +33,5 @@ export function useLongPress(onLongPress: (() => void) | null, ms = 500) {
     onPointerUp: cancel,
     onPointerLeave: cancel,
     onPointerCancel: cancel,
-    // Long-pressing a link on a phone would open the browser's link menu instead.
-    onContextMenu: (e: PointerEvent | React.MouseEvent) => e.preventDefault(),
   };
 }

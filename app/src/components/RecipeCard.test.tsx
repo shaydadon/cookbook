@@ -1,4 +1,4 @@
-import { screen } from "@testing-library/react";
+import { fireEvent, screen } from "@testing-library/react";
 import { expect, test } from "vitest";
 import { formatMinutes } from "../lib/recipes";
 import type { Recipe } from "../lib/types";
@@ -24,4 +24,20 @@ test("no image → placeholder panel; long title is clamped; no time → categor
   expect(screen.getByText(long).className).toMatch(/line-clamp-2/);
   expect(screen.getByText("ארוחת בוקר")).toBeInTheDocument();
   expect(screen.getByRole("button", { name: "הסרה מהמועדפים" })).toBeInTheDocument();
+});
+
+// Android/iOS open a link-and-image menu on long-press; it must never cover an admin's card, edit mode included.
+test("admin cards suppress the browser's long-press menu, in and out of edit mode", () => {
+  const { unmount } = renderWithProviders(
+    <RecipeCard recipe={base} isFavorite={false} onToggleFavorite={() => {}} onLongPress={() => {}} onDelete={() => {}} />);
+  expect(fireEvent.contextMenu(screen.getByRole("link"))).toBe(false); // false = default prevented
+  unmount();
+  renderWithProviders(
+    <RecipeCard recipe={base} isFavorite={false} onToggleFavorite={() => {}} onLongPress={() => {}} onDelete={() => {}} editing />);
+  expect(fireEvent.contextMenu(screen.getByRole("link"))).toBe(false);
+});
+
+test("members keep the browser's normal long-press menu", () => {
+  renderWithProviders(<RecipeCard recipe={base} isFavorite={false} onToggleFavorite={() => {}} />);
+  expect(fireEvent.contextMenu(screen.getByRole("link"))).toBe(true);
 });
