@@ -194,3 +194,14 @@ Deno.test("a WhatsApp message that is only the link does not count as recipe con
   const url = "https://www.israelhayom.co.il/food/recipes/article/21615142?shem=dsdf%2Csharefoc";
   assertEquals(await fetchSource({ url, platform: "web", messageText: url }, f), null);
 });
+
+Deno.test("instagram: asks as a crawler, since a cookie-less browser may get a page without the caption", async () => {
+  const uas: string[] = [];
+  const f = (async (_input: string | URL | Request, init?: RequestInit) => {
+    uas.push(new Headers(init?.headers).get("user-agent") ?? "");
+    return htmlResponse(`<meta property="og:description" content="מתכון: 2 כוסות קמח, ביצה. אופן הכנה: מערבבים ואופים 20 דקות">`);
+  }) as typeof fetch;
+  const out = await fetchSource({ url: "https://www.instagram.com/reel/x/?hl=he", platform: "instagram", messageText: null }, f);
+  assertStringIncludes(out!, "2 כוסות קמח");
+  assert(/bot|crawler|externalhit/i.test(uas[0]), `crawler user agent expected, got ${uas[0]}`);
+});

@@ -28,9 +28,11 @@ export async function ingest(
 
   for (const raw of extractUrls(input.text)) {
     let normalized: string;
+    // The address the pipeline fetches: the real page, not a Google/Facebook redirect wrapper or short link.
+    let resolved: string;
     try {
       if (!isPublicHttpUrl(raw, opts)) continue; // private/internal address
-      const resolved = await resolve(raw);
+      resolved = await resolve(raw);
       if (!isPublicHttpUrl(resolved, opts)) continue; // short link that expands to a private address
       normalized = normalizeUrl(resolved);
     } catch {
@@ -41,7 +43,7 @@ export async function ingest(
     let duplicate = recipe !== null;
     if (!recipe) {
       const inserted = await db.from("recipes")
-        .insert({ source_url: raw, source_url_normalized: normalized, source_platform: detectPlatform(normalized) })
+        .insert({ source_url: resolved, source_url_normalized: normalized, source_platform: detectPlatform(normalized) })
         .select("id, status").single();
       if (inserted.error?.code === "23505") {
         recipe = (await db.from("recipes").select("id, status").eq("source_url_normalized", normalized).single()).data;
