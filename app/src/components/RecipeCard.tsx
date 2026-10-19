@@ -9,9 +9,9 @@ import { CloseIcon } from "./ui/icons";
  * Feed card. Admins can long-press to enter edit mode (`onLongPress`); in edit mode (`editing`) the card
  * jiggles like an iPhone icon, shows a delete ✕ (`onDelete`) and no longer opens the recipe.
  */
-export function RecipeCard({ recipe, isFavorite, onToggleFavorite, editing = false, onLongPress, onDelete, index = 0 }: {
+export function RecipeCard({ recipe, isFavorite, onToggleFavorite, editing = false, onLongPress, onDelete, onExitEdit, index = 0 }: {
   recipe: Recipe; isFavorite: boolean; onToggleFavorite(): void;
-  editing?: boolean; onLongPress?: () => void; onDelete?: () => void; index?: number;
+  editing?: boolean; onLongPress?: () => void; onDelete?: () => void; onExitEdit?: () => void; index?: number;
 }) {
   const img = imageUrl(recipe.image_path);
   const total = totalMinutes(recipe);
@@ -28,7 +28,7 @@ export function RecipeCard({ recipe, isFavorite, onToggleFavorite, editing = fal
       className={`card pressable relative select-none rounded-2xl [-webkit-touch-callout:none] ${editing ? "jiggle" : ""}`}>
       <Link to={`/recipe/${recipe.id}`} className="block overflow-hidden rounded-2xl" draggable={false}
         aria-disabled={editing || undefined} tabIndex={editing ? -1 : undefined}
-        onClick={editing ? (e) => e.preventDefault() : undefined}>
+        onClick={editing ? (e) => { e.preventDefault(); onExitEdit?.(); } : undefined}>
         <div className="aspect-square bg-accent-soft">
           {img
             ? <img src={img} alt="" crossOrigin="anonymous" loading="lazy" draggable={false} className="size-full object-cover" />
