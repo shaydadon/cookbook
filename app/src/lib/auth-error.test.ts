@@ -43,3 +43,9 @@ test("takeAuthError maps hook/access errors to the members-only message and clea
   sessionStorage.setItem(AUTH_ERROR_KEY, "Unable to exchange external code");
   expect(takeAuthError()).toBe(SIGN_IN_FAILED);
 });
+
+// The members-only hook rejects with our own Hebrew message, which Supabase passes through as the description.
+test("the hook's own Hebrew rejection message maps to the members-only message", () => {
+  sessionStorage.setItem(AUTH_ERROR_KEY, "הגישה מותרת לחברי הקבוצה בלבד");
+  expect(takeAuthError()).toBe(MEMBERS_ONLY);
+});

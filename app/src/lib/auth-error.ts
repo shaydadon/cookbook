@@ -42,5 +42,6 @@ export function takeAuthError(store: Pick<Storage, "getItem" | "removeItem"> = s
     return null;
   }
   if (raw === null) return null;
-  return /hook|403|not allowed|access/i.test(raw) ? MEMBERS_ONLY : SIGN_IN_FAILED;
+  // The members-only hook rejects with MEMBERS_ONLY itself, which Supabase passes through as the description.
+  return /hook|403|not allowed|access/i.test(raw) || raw.includes(MEMBERS_ONLY) ? MEMBERS_ONLY : SIGN_IN_FAILED;
 }
