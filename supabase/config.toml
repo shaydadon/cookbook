@@ -423,3 +423,7 @@ verify_jwt = false
 
 [functions.process-recipe]
 verify_jwt = false
+
+# Green API calls this directly; it authenticates with its own shared secret (GREEN_API_WEBHOOK_TOKEN).
+[functions.whatsapp-webhook]
+verify_jwt = false

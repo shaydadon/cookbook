@@ -34,38 +34,25 @@ npx deno eval --node-modules-dir=auto --env-file=supabase/functions/.env 'import
 ```
 Expected: `{"kind":"ok","recipe":{"title":"<Hebrew>", ...}}` with Hebrew steps. If the API returns a 400 about `output_config.format` or `fallbacks`, stop and report the exact error. Do not switch to forced `tool_choice`.
 
-## 3. WhatsApp gateway (Green API)
-1. Buy/assign a dedicated SIM; install WhatsApp on a spare phone with it.
-2. Create a Green API instance; scan its QR code from that phone (Linked devices).
-3. Add the number to the recipes group.
-4. In the instance settings enable **incoming message webhooks** and set the webhook URL to the Make webhook from step 4.
+## 3. WhatsApp gateway (Green API → whatsapp-webhook)
+Green API posts straight to our `whatsapp-webhook` function; no Make in between. A personal number works on the
+Business plan only (the free Developer plan forwards just 3 chats a month).
+1. Create a Green API instance and link the WhatsApp number (Linked devices → scan the QR code); it must be in the recipes group.
+2. Find the group id: console → All methods → getContacts → the entry with the group name (`…@g.us`).
+3. Function secrets: `GREEN_API_WEBHOOK_TOKEN` (long random value) and `WHATSAPP_GROUP_IDS` (comma-separated group ids):
+   `npx supabase secrets set GREEN_API_WEBHOOK_TOKEN=… WHATSAPP_GROUP_IDS=…@g.us`, then deploy `whatsapp-webhook`.
+4. Instance settings → Webhooks:
+   - Webhook Url: `https://<ref>.supabase.co/functions/v1/whatsapp-webhook`
+   - Webhook authorization header: the same token (Green API sends it as `Authorization: Bearer <token>`)
+   - On: incoming messages and files, messages sent from phone. Everything else off.
+   - Off (instance settings): mark incoming messages read, mark read on reply.
+5. Behaviour: links from the configured group (plain text, link preview, reply, photo/video caption) become recipes
+   credited to the sender; every other chat and notification is answered 200 and dropped without logging its content.
+   A temporary failure answers 500 and Green API redelivers after 60 s. Logs: Supabase → Edge Functions → whatsapp-webhook.
 
-## 4. Make scenario
-1. Trigger: **Webhooks → Custom webhook** (copy its URL into Green API).
-2. Filter: `messageData.textMessageData.textMessage` *or* `messageData.extendedTextMessageData.text` contains `http`, **and** `senderData.chatId` equals the group id (ends with `@g.us`).
-3. Action: **JSON → Create JSON**. Do **not** type the body as a raw JSON string with `{{…}}` placeholders: a
-   WhatsApp message with a line break, a double quote or a backslash produces invalid JSON, and `ingest` rejects it
-   with `400 {"error":"invalid_json"}`. Create JSON escapes the values for you.
-   - Data structure: click **Add**, name it `ingest message`, and add three fields of type *Text*:
-     `text`, `sender_name`, `sent_at`.
-   - Map them:
-     - `text` → `coalesce(messageData.extendedTextMessageData.text; messageData.textMessageData.textMessage)`
-     - `sender_name` → `senderData.senderName`
-     - `sent_at` → `formatDate(parseDate(timestamp; "X"); "YYYY-MM-DDTHH:mm:ssZ")`
-   - `sent_at` must always be mapped from the WhatsApp message timestamp. Without it, gateway re-deliveries of the
-     same message are not recognised and create duplicate shares.
-4. Action: **HTTP → Make a request**
-   - URL: `https://<ref>.supabase.co/functions/v1/ingest`
-   - Method: POST
-   - Headers: `x-ingest-secret: <INGEST_SECRET>` (the long random value from step 2)
-   - Body type: Raw, Content type: JSON (application/json), Request content: map the **JSON string** output of the
-     Create JSON module from step 3 (nothing else in the field).
-   - (Alternative: newer versions of the HTTP module offer a body type "JSON (application/json)" that takes a data
-     structure directly; use the same three fields. Either way the module, not you, builds the JSON.)
-   - `ingest` answers `400 invalid_json` when the body is not valid JSON, and `400 no_url` when the JSON is fine but
-     the message has no link.
-5. Turn the scenario on. Post a link in the group, including one with several lines and "quotes", and watch
-   `recipes` in the Table Editor.
+## 4. (Legacy) Make scenario
+No longer used: point Green API at `whatsapp-webhook` instead (section 3). `ingest` still accepts `x-ingest-secret`
+requests if a Make route is ever needed again.
 
 ## 5. Importing history
 In WhatsApp: group → ⋮ → More → Export chat → **Without media**. Upload the `.txt` in the app's admin screen.
