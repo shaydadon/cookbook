@@ -31,3 +31,30 @@ Deno.test("ingest skips private/internal URLs and short links that expand to the
   assertEquals(res, []);
   assertEquals(resolved, ["https://bit.ly/abc"]); // private raw URLs are not even resolved
 });
+
+// A fake supabase-js query chain that records the recipe insert and answers "not found" to lookups.
+function recordingDb() {
+  const inserts: Record<string, unknown>[] = [];
+  const chain = (table: string) => {
+    const q: Record<string, unknown> = {};
+    const self = () => q;
+    Object.assign(q, {
+      select: self, eq: self, single: () => Promise.resolve({ data: { id: "r1", status: "queued" }, error: null }),
+      maybeSingle: () => Promise.resolve({ data: null, error: null }),
+      insert: (row: Record<string, unknown>) => { if (table === "recipes") inserts.push(row); return q; },
+      upsert: () => Promise.resolve({ error: null }),
+    });
+    return q;
+  };
+  return { db: { from: chain } as unknown as SupabaseClient, inserts };
+}
+
+Deno.test("the recipe stores the resolved address to fetch, not a redirect wrapper", async () => {
+  const { db, inserts } = recordingDb();
+  const wrapper = "https://www.google.com/url?sa=t&url=https://a.test/recipe&usg=AOv";
+  await ingest(db, { text: `נסו ${wrapper}`, senderName: "x", sentAt: null, via: "whatsapp", submittedBy: null },
+    async () => "https://a.test/recipe", { allowLocal: false });
+  assertEquals(inserts.length, 1);
+  assertEquals(inserts[0].source_url, "https://a.test/recipe");
+  assertEquals(inserts[0].source_url_normalized, "https://a.test/recipe");
+});

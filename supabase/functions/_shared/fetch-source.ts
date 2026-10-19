@@ -11,12 +11,16 @@ const MIN_USEFUL_CHARS = 40;
 /**
  * Facebook answers a cookie-less browser with HTTP 400, but serves crawlers the public post, including
  * the full caption (needed: og:description stops after ~200 characters, mid-ingredients).
+ * Instagram likewise can serve a cookie-less browser a page with no caption, while crawlers get it.
  */
 const CRAWLER_HEADERS: Record<string, string> = {
   "User-Agent": "Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)",
   "Accept-Language": "he-IL,he;q=0.9,en;q=0.8",
 };
-const HEADERS_FOR: Partial<Record<Platform, Record<string, string>>> = { facebook: CRAWLER_HEADERS };
+const HEADERS_FOR: Partial<Record<Platform, Record<string, string>>> = {
+  facebook: CRAWLER_HEADERS,
+  instagram: CRAWLER_HEADERS,
+};
 
 const LINK_RE = /https?:\/\/\S+/gi;
 

@@ -61,7 +61,22 @@ export function detectPlatform(url: string): Platform {
 
 export const RESOLVE_TIMEOUT_MS = 5000;
 
-export async function resolveUrl(url: string, fetchFn: typeof fetch = fetch): Promise<string> {
+/**
+ * Redirect wrappers around the real address: links copied from Google results (google.*\/url?url=|q=)
+ * or out of the Facebook/Instagram apps (l.facebook.com/l.php?u=, l.instagram.com/?u=). Fetching the
+ * wrapper returns a redirect page instead of the recipe, so read the target from the query string.
+ */
+export function unwrapRedirect(url: string): string {
+  const u = new URL(url);
+  const host = bareHost(u.hostname);
+  let target: string | null = null;
+  if (/^google\.[a-z.]+$/.test(host) && u.pathname === "/url") target = u.searchParams.get("url") ?? u.searchParams.get("q");
+  else if ((host === "l.facebook.com" && u.pathname === "/l.php") || host === "l.instagram.com") target = u.searchParams.get("u");
+  return target && /^https?:\/\//i.test(target) ? target : url;
+}
+
+export async function resolveUrl(input: string, fetchFn: typeof fetch = fetch): Promise<string> {
+  const url = unwrapRedirect(input);
   if (!SHORT_HOSTS.has(bareHost(new URL(url).hostname))) return url;
   try {
     const res = await fetchFn(url, { redirect: "follow", headers: BROWSER_HEADERS, signal: AbortSignal.timeout(RESOLVE_TIMEOUT_MS) });

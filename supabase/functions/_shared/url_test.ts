@@ -88,3 +88,27 @@ Deno.test("resolveUrl returns the input when the network fails", async () => {
   const failing = (() => Promise.reject(new Error("offline"))) as typeof fetch;
   assertEquals(await resolveUrl("https://bit.ly/abc", failing), "https://bit.ly/abc");
 });
+
+// Links copied from Google results or out of the Facebook/Instagram apps are redirect wrappers around the
+// real address; fetching the wrapper gets a redirect page, not the recipe.
+Deno.test("resolveUrl unwraps Google, Facebook and Instagram redirect links without fetching them", async () => {
+  let fetched = 0;
+  const f = (async () => { fetched++; return new Response(null); }) as typeof fetch;
+  const google = "https://www.google.com/url?sa=t&source=web&rct=j&opi=89978449&url=https://www.instagram.com/reel/DVT4F_wDcu4/%3Fhl%3Dhe&ved=2ahUKEw&usg=AOvVaw2c";
+  assertEquals(await resolveUrl(google, f), "https://www.instagram.com/reel/DVT4F_wDcu4/?hl=he");
+  assertEquals(await resolveUrl("https://www.google.co.il/url?q=https://a.test/r&sa=U", f), "https://a.test/r");
+  assertEquals(await resolveUrl("https://l.facebook.com/l.php?u=https%3A%2F%2Fb.test%2Fx&h=AT0", f), "https://b.test/x");
+  assertEquals(await resolveUrl("https://l.instagram.com/?u=https%3A%2F%2Fc.test%2Fy&e=AT1", f), "https://c.test/y");
+  assertEquals(fetched, 0);
+});
+
+Deno.test("resolveUrl leaves a Google link alone when it carries no http(s) target", async () => {
+  const f = (async () => new Response(null)) as typeof fetch;
+  assertEquals(await resolveUrl("https://www.google.com/url?url=javascript:alert(1)", f), "https://www.google.com/url?url=javascript:alert(1)");
+  assertEquals(await resolveUrl("https://www.google.com/search?q=pasta", f), "https://www.google.com/search?q=pasta");
+});
+
+Deno.test("a wrapped short link is unwrapped and then expanded", async () => {
+  const f = (async () => ({ url: "https://www.tiktok.com/@chef/video/1", body: null }) as unknown as Response) as typeof fetch;
+  assertEquals(await resolveUrl("https://www.google.com/url?q=https://vm.tiktok.com/ZS1/", f), "https://www.tiktok.com/@chef/video/1");
+});
