@@ -1,16 +1,19 @@
 import { keepPreviousData, useInfiniteQuery } from "@tanstack/react-query";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useSearchParams } from "react-router";
+import { useAuth } from "../auth/AuthProvider";
 import { CategoryChips } from "../components/CategoryChips";
 import { IosInstallHint } from "../components/IosInstallHint";
 import { PushPrompt } from "../components/PushPrompt";
 import { RecipeCard } from "../components/RecipeCard";
 import { SearchBar } from "../components/SearchBar";
+import { Sheet } from "../components/ui/Sheet";
 import { SkeletonCard } from "../components/ui/Skeleton";
 import { useDebounced } from "../hooks/useDebounced";
 import { useFavorites } from "../hooks/useFavorites";
 import { useIsDesktop } from "../hooks/useIsDesktop";
-import { listRecipes, PAGE_SIZE } from "../lib/recipes";
+import { adminAction, listRecipes, PAGE_SIZE } from "../lib/recipes";
+import type { Recipe } from "../lib/types";
 
 const GRID = "grid grid-cols-2 gap-2.5 desk:grid-cols-[repeat(auto-fill,minmax(210px,1fr))] desk:gap-4";
 
@@ -21,6 +24,12 @@ export default function FeedPage({ favoritesOnly = false }: { favoritesOnly?: bo
   const debouncedQ = useDebounced(q, 300);
   const favorites = useFavorites();
   const isDesktop = useIsDesktop();
+  const isAdmin = useAuth().member?.role === "admin";
+  // Admin edit mode (long-press a card): cards jiggle with a delete ✕, like iPhone home-screen editing.
+  const [editing, setEditing] = useState(false);
+  const [pendingDelete, setPendingDelete] = useState<Recipe | null>(null);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   const update = (key: string, value: string | null) => {
     const next = new URLSearchParams(params);
@@ -47,6 +56,28 @@ export default function FeedPage({ favoritesOnly = false }: { favoritesOnly?: bo
     io.observe(sentinel.current);
     return () => io.disconnect();
   }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
+
+  useEffect(() => {
+    if (!editing || pendingDelete) return;
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") setEditing(false); };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [editing, pendingDelete]);
+
+  async function confirmDelete() {
+    if (!pendingDelete) return;
+    setDeleting(true);
+    setDeleteError(null);
+    try {
+      await adminAction({ action: "delete", recipe_id: pendingDelete.id });
+      setPendingDelete(null);
+      await query.refetch();
+    } catch (e) {
+      setDeleteError((e as Error).message || "המחיקה נכשלה. נסו שוב.");
+    } finally {
+      setDeleting(false);
+    }
+  }
 
   const empty = favoritesOnly ? "עוד לא סימנת מתכונים כמועדפים" : "עוד אין כאן מתכונים";
 
@@ -75,11 +106,33 @@ export default function FeedPage({ favoritesOnly = false }: { favoritesOnly?: bo
       {query.isSuccess && !query.isPlaceholderData && recipes.length === 0 && (
         <p className="py-16 text-center text-muted">{empty}</p>
       )}
-      <div className={GRID}>
-        {recipes.map((r) => (
-          <RecipeCard key={r.id} recipe={r} isFavorite={favorites.ids.has(r.id)} onToggleFavorite={() => favorites.toggle(r.id)} />
+      {editing && (
+        <div className="frost sticky top-[calc(2.75rem+env(safe-area-inset-top))] z-10 -mx-1 flex items-center justify-between rounded-xl px-3 py-2 desk:top-2">
+          <p className="text-[13px] text-muted">מצב עריכה · הקישו ✕ כדי למחוק מתכון</p>
+          <button type="button" onClick={() => setEditing(false)} className="pressable min-h-9 rounded-lg px-3 font-bold text-accent">סיום</button>
+        </div>
+      )}
+      {/* tapping empty space between the cards also leaves edit mode */}
+      <div className={GRID} onClick={editing ? (e) => { if (e.target === e.currentTarget) setEditing(false); } : undefined}>
+        {recipes.map((r, i) => (
+          <RecipeCard key={r.id} recipe={r} index={i} isFavorite={favorites.ids.has(r.id)} onToggleFavorite={() => favorites.toggle(r.id)}
+            editing={editing}
+            onLongPress={isAdmin ? () => setEditing(true) : undefined}
+            onDelete={isAdmin ? () => { setDeleteError(null); setPendingDelete(r); } : undefined} />
         ))}
       </div>
+      <Sheet open={pendingDelete !== null} onClose={() => { if (!deleting) setPendingDelete(null); }} title="מחיקת מתכון">
+        <p className="text-center text-[15px]">
+          למחוק את <span className="font-semibold">״{pendingDelete?.title}״</span>? המתכון יימחק לכל חברי הקבוצה ואי אפשר לשחזר אותו.
+        </p>
+        {deleteError && <p role="alert" className="mt-3 text-center text-[13px] text-danger">{deleteError}</p>}
+        <div className="mt-5 flex flex-col gap-2">
+          <button type="button" disabled={deleting} onClick={confirmDelete}
+            className="pressable min-h-12 rounded-[14px] bg-danger font-bold text-white disabled:opacity-60">מחיקה</button>
+          <button type="button" disabled={deleting} onClick={() => setPendingDelete(null)}
+            className="pressable min-h-12 rounded-[14px] bg-fill font-semibold">ביטול</button>
+        </div>
+      </Sheet>
       <div ref={sentinel} />
       {query.hasNextPage && (
         <button className="pressable mx-auto min-h-11 rounded-xl bg-fill px-5 font-medium" onClick={() => query.fetchNextPage()}>
