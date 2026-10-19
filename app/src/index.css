@@ -110,3 +110,11 @@ input, textarea, select { font-size: 16px; } /* no iOS zoom on focus */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }
 }
+
+/* Admin edit mode: iPhone-style jiggle (reduced-motion users get the ✕ without the motion, via the rule above) */
+@keyframes jiggle {
+  0% { transform: rotate(-1.2deg); }
+  50% { transform: rotate(1.2deg); }
+  100% { transform: rotate(-1.2deg); }
+}
+.jiggle { animation: jiggle 260ms ease-in-out infinite; transform-origin: 50% 40%; }
