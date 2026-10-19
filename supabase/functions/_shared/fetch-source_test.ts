@@ -205,3 +205,16 @@ Deno.test("instagram: asks as a crawler, since a cookie-less browser may get a p
   assertStringIncludes(out!, "2 כוסות קמח");
   assert(/bot|crawler|externalhit/i.test(uas[0]), `crawler user agent expected, got ${uas[0]}`);
 });
+
+Deno.test("a redirect to Facebook's outgoing-link page (l.facebook.com/l.php) is followed to the real site", async () => {
+  const calls: string[] = [];
+  const f = (async (input: string | URL | Request) => {
+    const u = String(input);
+    calls.push(u);
+    if (u.startsWith("https://www.facebook.com/share/")) return redirect("https://l.facebook.com/l.php?u=https%3A%2F%2Fsite.test%2Frecipe&h=AT0");
+    return htmlResponse(RECIPE_HTML);
+  }) as typeof fetch;
+  const out = await fetchSource({ url: "https://www.facebook.com/share/EyWq/", platform: "facebook", messageText: null }, f);
+  assertEquals(calls, ["https://www.facebook.com/share/EyWq/", "https://site.test/recipe"]);
+  assertStringIncludes(out!, '"name":"Soup"');
+});
