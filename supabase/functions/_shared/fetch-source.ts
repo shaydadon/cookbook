@@ -1,7 +1,7 @@
 import { extractFromHtml, fullPostText } from "./extract.ts";
 import { isPublicHttpUrl, type SafeUrlOptions } from "./safe-url.ts";
 import type { Platform } from "./types.ts";
-import { BROWSER_HEADERS } from "./url.ts";
+import { BROWSER_HEADERS, unwrapRedirect } from "./url.ts";
 
 export const MAX_RAW_CONTENT = 15000;
 export const MAX_HTML_BYTES = 2_000_000;
@@ -83,7 +83,8 @@ async function fetchPublic(
     if (res.status < 300 || res.status >= 400 || !location) return res;
     await res.body?.cancel();
     if (hop >= MAX_REDIRECTS) throw new BlockedUrlError("too many redirects");
-    current = new URL(location, current).href;
+    // A Facebook share of an outside site redirects to l.facebook.com/l.php?u=…, an interstitial page: go straight to the site.
+    current = unwrapRedirect(new URL(location, current).href);
   }
 }
 
