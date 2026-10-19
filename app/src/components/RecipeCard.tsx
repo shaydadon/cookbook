@@ -20,6 +20,9 @@ export function RecipeCard({ recipe, isFavorite, onToggleFavorite, editing = fal
   return (
     // The favourite and delete buttons are siblings of the link (no interactive element nested inside <a>).
     <div data-recipe-card {...press}
+      // Admin cards: holding a finger on the link/image must not open the browser's link menu (Android,
+      // iOS), whether or not edit mode is already on.
+      onContextMenu={onLongPress ? (e) => e.preventDefault() : undefined}
       // stagger the jiggle so the cards don't move in lockstep
       style={editing ? { animationDelay: `${-(index % 4) * 70}ms` } : undefined}
       className={`card pressable relative select-none rounded-2xl [-webkit-touch-callout:none] ${editing ? "jiggle" : ""}`}>
