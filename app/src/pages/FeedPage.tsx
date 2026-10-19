@@ -57,9 +57,25 @@ export default function FeedPage({ favoritesOnly = false }: { favoritesOnly?: bo
     return () => io.disconnect();
   }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
 
+  // Edit mode gets its own history entry, so the phone Back gesture leaves edit mode instead of the page.
+  const enterEdit = () => {
+    setEditing(true);
+    window.history.pushState({ ...(window.history.state ?? {}), editMode: true }, "");
+  };
+  const exitEdit = () => {
+    setEditing(false);
+    if ((window.history.state as { editMode?: boolean } | null)?.editMode) window.history.back();
+  };
+  useEffect(() => {
+    if (!editing) return;
+    const onPop = () => setEditing(false);
+    window.addEventListener("popstate", onPop);
+    return () => window.removeEventListener("popstate", onPop);
+  }, [editing]);
+
   useEffect(() => {
     if (!editing || pendingDelete) return;
-    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") setEditing(false); };
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") exitEdit(); };
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
   }, [editing, pendingDelete]);
@@ -109,15 +125,16 @@ export default function FeedPage({ favoritesOnly = false }: { favoritesOnly?: bo
       {editing && (
         <div className="frost sticky top-[calc(2.75rem+env(safe-area-inset-top))] z-10 -mx-1 flex items-center justify-between rounded-xl px-3 py-2 desk:top-2">
           <p className="text-[13px] text-muted">מצב עריכה · הקישו ✕ כדי למחוק מתכון</p>
-          <button type="button" onClick={() => setEditing(false)} className="pressable min-h-9 rounded-lg px-3 font-bold text-accent">סיום</button>
+          <button type="button" onClick={exitEdit} className="pressable min-h-9 rounded-full bg-accent px-5 font-bold text-on-accent">סיום</button>
         </div>
       )}
       {/* tapping empty space between the cards also leaves edit mode */}
-      <div className={GRID} onClick={editing ? (e) => { if (e.target === e.currentTarget) setEditing(false); } : undefined}>
+      <div className={GRID} onClick={editing ? (e) => { if (e.target === e.currentTarget) exitEdit(); } : undefined}>
         {recipes.map((r, i) => (
           <RecipeCard key={r.id} recipe={r} index={i} isFavorite={favorites.ids.has(r.id)} onToggleFavorite={() => favorites.toggle(r.id)}
             editing={editing}
-            onLongPress={isAdmin ? () => setEditing(true) : undefined}
+            onLongPress={isAdmin ? enterEdit : undefined}
+            onExitEdit={exitEdit}
             onDelete={isAdmin ? () => { setDeleteError(null); setPendingDelete(r); } : undefined} />
         ))}
       </div>

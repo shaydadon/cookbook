@@ -106,3 +106,26 @@ test("member: a long press does nothing — only admins can delete", async () =>
   expect(screen.queryByRole("button", { name: "סיום" })).not.toBeInTheDocument();
   expect(screen.queryByRole("button", { name: /^מחיקת / })).not.toBeInTheDocument();
 });
+
+test("admin: tapping a card (not its ✕) leaves edit mode instead of opening the recipe", async () => {
+  renderWithProviders(<FeedPage />, { member: TEST_ADMIN });
+  await longPress("מרק עדשים");
+  await userEvent.click(screen.getByRole("link", { name: /עוגת שמרים/ }));
+  expect(screen.queryByRole("button", { name: "סיום" })).not.toBeInTheDocument();
+  expect(adminAction).not.toHaveBeenCalled();
+});
+
+test("admin: the phone's Back gesture leaves edit mode instead of leaving the page", async () => {
+  renderWithProviders(<FeedPage />, { member: TEST_ADMIN });
+  await longPress("מרק עדשים");
+  expect(screen.getByRole("button", { name: "סיום" })).toBeInTheDocument();
+  await act(async () => { window.dispatchEvent(new PopStateEvent("popstate", { state: null })); });
+  expect(screen.queryByRole("button", { name: "סיום" })).not.toBeInTheDocument();
+  expect(screen.getByRole("link", { name: /מרק עדשים/ })).toBeInTheDocument(); // still on the feed
+});
+
+test("admin: the Done button stands out as a filled button", async () => {
+  renderWithProviders(<FeedPage />, { member: TEST_ADMIN });
+  await longPress("מרק עדשים");
+  expect(screen.getByRole("button", { name: "סיום" }).className).toMatch(/bg-accent/);
+});
