@@ -218,3 +218,23 @@ Deno.test("a redirect to Facebook's outgoing-link page (l.facebook.com/l.php) is
   assertEquals(calls, ["https://www.facebook.com/share/EyWq/", "https://site.test/recipe"]);
   assertStringIncludes(out!, '"name":"Soup"');
 });
+
+// ynet/mako publish a Recipe JSON-LD with missing ingredients or method; the rest is only in the article text.
+Deno.test("an incomplete JSON-LD recipe is sent together with the page text", async () => {
+  const ld = { "@type": "Recipe", name: "טורטיות תוצרת בית", recipeIngredient: [], description: "טורטיות רכות" };
+  const f = (async () => htmlResponse(
+    `<script type="application/ld+json">${JSON.stringify(ld)}</script><article>מצרכים: 2 כוסות קמח, חצי כוס מים חמימים, 3 כפות שמן. אופן ההכנה: לשים, מרדדים ומטגנים במחבת יבשה.</article>`,
+  )) as typeof fetch;
+  const out = await fetchSource({ url: "https://www.ynet.co.il/laisha/article/x", platform: "web", messageText: null }, f);
+  assertStringIncludes(out!, "טורטיות תוצרת בית");
+  assertStringIncludes(out!, "2 כוסות קמח");
+  assertStringIncludes(out!, "מרדדים ומטגנים");
+});
+
+Deno.test("a complete JSON-LD recipe is sent on its own (no page noise)", async () => {
+  const ld = { "@type": "Recipe", name: "מרק", recipeIngredient: ["מים", "מלח"], recipeInstructions: [{ "@type": "HowToStep", text: "מבשלים." }] };
+  const f = (async () => htmlResponse(`<meta property="og:description" content="תקציר שיווקי"><script type="application/ld+json">${JSON.stringify(ld)}</script><article>פרסומת לסלולר</article>`)) as typeof fetch;
+  const out = await fetchSource({ url: "https://a.test/r", platform: "web", messageText: null }, f);
+  assert(!out!.includes("פרסומת"));
+  assert(!out!.includes("תקציר שיווקי"));
+});
