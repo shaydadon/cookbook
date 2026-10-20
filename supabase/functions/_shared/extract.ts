@@ -35,6 +35,11 @@ export function findRecipe(node: unknown): Record<string, unknown> | null {
 
 const MIN_ARTICLE_BODY = 40;
 
+const CONTENT_SELECTORS = [
+  "article", "main", '[itemprop="articleBody"]', '[class*="post-content"]', '[class*="article-body"]',
+  '[class*="articleBody"]', '[class*="entry-content"]', '[class*="recipe"]',
+].join(",");
+
 const decodeEntities = (s: string) =>
   s.replace(/&#x([0-9a-f]+);/gi, (_, x) => String.fromCodePoint(parseInt(x, 16)))
     .replace(/&#(\d+);/g, (_, x) => String.fromCodePoint(Number(x)))
@@ -103,7 +108,12 @@ export function extractFromHtml(html: string): Extracted {
       return null;
     }
   };
-  const root = document.querySelector("article") ?? document.querySelector("main") ?? safeBody();
+  // The main content block is the candidate holding the most text: news sites often put a promo in the first
+  // (or only) <article> while the recipe sits in a post-content container (e.g. Israel Hayom).
+  const candidates: { textContent: string | null }[] = [...document.querySelectorAll(CONTENT_SELECTORS)];
+  const longest = candidates.reduce<{ textContent: string | null } | null>(
+    (best, el) => ((el.textContent ?? "").length > (best?.textContent ?? "").length ? el : best), null);
+  const root = longest ?? safeBody();
   const text = (root?.textContent ?? "").replace(/\s+/g, " ").trim();
 
   return { jsonLdRecipe, title, description, articleBody, text };
