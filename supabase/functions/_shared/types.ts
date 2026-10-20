@@ -42,6 +42,8 @@ export interface RecipeRow {
   attempts: number;
   /** Claims since the last successful step; the DB ends the row after 3 (see claim_next_recipe). */
   claims: number;
+  /** Automatic refetches used for a social link that returned no content (see SOCIAL_RETRY_MINUTES). */
+  fetch_retries: number;
   next_attempt_at: string;
   locked_until: string | null;
   published_at: string | null;

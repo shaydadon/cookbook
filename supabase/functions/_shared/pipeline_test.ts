@@ -10,6 +10,7 @@ const base: RecipeRow = {
   source_platform: "web", raw_content: null, title: null, description: null, ingredients: [], steps: [],
   prep_minutes: null, cook_minutes: null, servings: null, category: null, tags: [], image_prompt: null,
   image_path: null, error: null, attempts: 0, claims: 0, next_attempt_at: NOW.toISOString(), locked_until: null, published_at: null,
+  fetch_retries: 0,
 };
 
 const AI: RecipeAi = {
@@ -133,4 +134,42 @@ Deno.test("retryPatch: pasted text replaces the content and is rewritten", () =>
   assertEquals(p.status, "rewriting");
   assertEquals(p.raw_content, "מצרכים: קמח. אופן הכנה: אופים.");
   assertEquals(p.title, null);
+});
+
+// Facebook/Instagram sometimes answer servers with a login wall: retry later before asking a person.
+const fb: RecipeRow = { ...base, source_platform: "facebook", source_url: "https://www.facebook.com/share/v/x/" };
+const minutesFromNow = (iso: string) => (Date.parse(iso) - NOW.getTime()) / 60_000;
+
+Deno.test("social link with no content is retried after 30 min, 2 h, then 6 h before needs_review", async () => {
+  const d = deps({ fetchSource: async () => null });
+  const first = await advanceRecipe(fb, d);
+  assertEquals(first.status, undefined); // stays queued
+  assertEquals(first.fetch_retries, 1);
+  assertEquals(first.claims, 0); // a long wait must not trip the stuck-row guard
+  assertEquals(minutesFromNow(first.next_attempt_at!), 30);
+  assertEquals(minutesFromNow((await advanceRecipe({ ...fb, fetch_retries: 1 }, d)).next_attempt_at!), 120);
+  assertEquals(minutesFromNow((await advanceRecipe({ ...fb, fetch_retries: 2 }, d)).next_attempt_at!), 360);
+  const last = await advanceRecipe({ ...fb, fetch_retries: 3 }, d);
+  assertEquals(last.status, "needs_review");
+});
+
+Deno.test("social link whose content was only a preview (insufficient) is fetched again later", async () => {
+  const p = await advanceRecipe({ ...fb, status: "rewriting", raw_content: "כיתוב הפוסט: עוגת גבינה…" },
+    deps({ rewrite: async () => ({ kind: "insufficient" }) }));
+  assertEquals(p.status, "queued");
+  assertEquals(p.raw_content, null);
+  assertEquals(p.fetch_retries, 1);
+  assertEquals(minutesFromNow(p.next_attempt_at!), 30);
+});
+
+Deno.test("ordinary websites are not retried: no content goes straight to needs_review", async () => {
+  const p = await advanceRecipe(base, deps({ fetchSource: async () => null }));
+  assertEquals(p.status, "needs_review");
+});
+
+Deno.test("admin-pasted text is never discarded for an automatic refetch", () => {
+  const pasted = retryPatch({ status: "needs_review", raw_content: null, title: null }, "מצרכים: קמח. אופן הכנה: אופים.");
+  assertEquals(pasted.fetch_retries, 3); // retries exhausted: an insufficient paste goes to needs_review
+  const plain = retryPatch({ status: "needs_review", raw_content: "x", title: null }, null);
+  assertEquals(plain.fetch_retries, 0); // a fresh retry cycle
 });

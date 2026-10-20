@@ -37,11 +37,29 @@ export function resumeStatus(r: Pick<RecipeRow, "raw_content" | "title">): "queu
 export function retryPatch(
   r: Pick<RecipeRow, "status" | "raw_content" | "title">,
   pasted: string | null | undefined,
-): { status: "queued" | "rewriting" | "imaging"; raw_content?: string | null; title?: null } {
+): { status: "queued" | "rewriting" | "imaging"; raw_content?: string | null; title?: null; fetch_retries?: number } {
   const text = pasted?.trim();
-  if (text) return { status: "rewriting", raw_content: text.slice(0, 15000), title: null };
-  if (r.status === "needs_review") return { status: "queued", raw_content: null, title: null };
+  // Pasted text is the admin's answer: never discard it for an automatic refetch (retries exhausted).
+  if (text) return { status: "rewriting", raw_content: text.slice(0, 15000), title: null, fetch_retries: SOCIAL_RETRY_MINUTES.length };
+  if (r.status === "needs_review") return { status: "queued", raw_content: null, title: null, fetch_retries: 0 };
   return { status: resumeStatus(r) };
+}
+
+/**
+ * Facebook/Instagram sometimes answer servers with a login wall or a short preview instead of the post.
+ * Such a link is fetched again after these waits before it goes to needs_review.
+ */
+export const SOCIAL_RETRY_MINUTES = [30, 120, 360];
+const SOCIAL = new Set(["facebook", "instagram"]);
+
+function socialRetry(r: RecipeRow, deps: PipelineDeps): RecipePatch | null {
+  if (!SOCIAL.has(r.source_platform) || r.fetch_retries >= SOCIAL_RETRY_MINUTES.length) return null;
+  const wait = SOCIAL_RETRY_MINUTES[r.fetch_retries] * 60_000;
+  return {
+    status: "queued", raw_content: null, fetch_retries: r.fetch_retries + 1, attempts: 0, claims: 0,
+    error: "הרשת החברתית לא החזירה את התוכן — ניסיון חוזר אוטומטי",
+    next_attempt_at: new Date(deps.now().getTime() + wait).toISOString(),
+  };
 }
 
 async function runStep(r: RecipeRow, deps: PipelineDeps): Promise<RecipePatch> {
@@ -49,13 +67,18 @@ async function runStep(r: RecipeRow, deps: PipelineDeps): Promise<RecipePatch> {
     case "queued": {
       const raw = r.raw_content ??
         await deps.fetchSource({ url: r.source_url, platform: r.source_platform, messageText: await deps.loadMessageText(r.id) });
-      if (!raw) return { status: "needs_review", error: "לא נמצא תוכן מתכון בקישור", attempts: 0 };
+      if (!raw) {
+        const retry = socialRetry(r, deps);
+        if (retry) { const { status: _keep, ...rest } = retry; return rest; } // stays queued
+        return { status: "needs_review", error: "לא נמצא תוכן מתכון בקישור", attempts: 0 };
+      }
       return { status: "rewriting", raw_content: raw, attempts: 0, error: null };
     }
     case "rewriting": {
       const res = await deps.rewrite(r.raw_content ?? "");
       if (res.kind === "insufficient") {
-        return { status: "needs_review", error: "לא נמצא מתכון מלא בתוכן (חסרים מרכיבים או אופן הכנה)", attempts: 0 };
+        return socialRetry(r, deps) ??
+          { status: "needs_review", error: "לא נמצא מתכון מלא בתוכן (חסרים מרכיבים או אופן הכנה)", attempts: 0 };
       }
       const x = res.recipe;
       return {
