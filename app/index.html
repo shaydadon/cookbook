@@ -12,7 +12,9 @@
       })();
     </script>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <!-- No viewport-fit=cover: the app stays above the phone's system bars (Android Chrome otherwise draws it
+         underneath and doesn't always report the inset, hiding the bottom tab bar). -->
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="theme-color" content="#F2F2F7" />
     <link rel="icon" href="/icon.svg" type="image/svg+xml" />
     <link rel="apple-touch-icon" href="/apple-touch-icon-180x180.png" />

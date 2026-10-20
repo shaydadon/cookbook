@@ -112,3 +112,15 @@ Deno.test("a wrapped short link is unwrapped and then expanded", async () => {
   const f = (async () => ({ url: "https://www.tiktok.com/@chef/video/1", body: null }) as unknown as Response) as typeof fetch;
   assertEquals(await resolveUrl("https://www.google.com/url?q=https://vm.tiktok.com/ZS1/", f), "https://www.tiktok.com/@chef/video/1");
 });
+
+Deno.test("resolveUrl follows Google's share links (share.google, search.app, images.app.goo.gl)", async () => {
+  const seen: string[] = [];
+  const f = (async (input: string | URL | Request) => {
+    seen.push(String(input));
+    return { url: "https://www.ynet.co.il/laisha/article/hyv00u0xn11g", body: null } as unknown as Response;
+  }) as typeof fetch;
+  for (const u of ["https://share.google/GA59vxMoeGGZ9xRjb", "https://search.app/Vp7Y1", "https://images.app.goo.gl/4JiHdby6ZfjcxpAH6"]) {
+    assertEquals(await resolveUrl(u, f), "https://www.ynet.co.il/laisha/article/hyv00u0xn11g");
+  }
+  assertEquals(seen.length, 3);
+});

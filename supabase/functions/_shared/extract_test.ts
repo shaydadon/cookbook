@@ -65,3 +65,21 @@ Deno.test("fullPostText returns null when the page holds nothing beyond the prev
   const html = `<meta property="og:description" content="עוגת גבינה פירורים קלה להכנה מצרכים: 2 כוסות..." /><body>Log in</body>`;
   assertEquals(fullPostText(html, "עוגת גבינה פירורים קלה להכנה מצרכים: 2 כוסות..."), null);
 });
+
+// Israel Hayom recipe pages: an empty JSON-LD articleBody, a promo block in the only <article>, and the recipe in
+// a separate post-content container. The text must come from the container that holds the recipe.
+Deno.test("extractFromHtml takes the main content block, not a promo <article>", () => {
+  const html = `<html><head><script type="application/ld+json">{"@type":"NewsArticle","articleBody":""}</script></head><body>
+    <div class="single-post-content">מצרכים: 2 כוסות קמח תופח, 1 כוס יוגורט. אופן ההכנה: מערבבים, יוצרים בייגלים ואופים 25 דקות ב-200 מעלות.
+      <p>מגישים חם עם שומשום.</p></div>
+    <article style="position:relative">אסם-שדרות: מנוע הצמיחה של הדרום</article></body></html>`;
+  const ex = extractFromHtml(html);
+  assertEquals(ex.articleBody, null);
+  assertStringIncludes(ex.text, "2 כוסות קמח תופח");
+});
+
+Deno.test("extractFromHtml still prefers a real <article> when it holds the content", () => {
+  const html = `<html><body><nav>תפריט ראשי</nav><article><h1>עוגה</h1><p>${"מערבבים ואופים. ".repeat(20)}</p></article>
+    <div class="related">כתבות נוספות</div></body></html>`;
+  assertStringIncludes(extractFromHtml(html).text, "מערבבים ואופים");
+});

@@ -17,6 +17,8 @@ const TRACKING_PARAMS = [
 
 const SHORT_HOSTS = new Set([
   "bit.ly", "tinyurl.com", "t.co", "goo.gl", "vm.tiktok.com", "vt.tiktok.com", "fb.watch", "s.id", "rb.gy",
+  // Google's share links (Android share sheet / Google app): plain redirects to the real page
+  "share.google", "search.app", "images.app.goo.gl",
 ]);
 
 export function extractUrls(text: string): string[] {
