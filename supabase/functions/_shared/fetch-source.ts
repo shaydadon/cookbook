@@ -24,6 +24,14 @@ const HEADERS_FOR: Partial<Record<Platform, Record<string, string>>> = {
 
 const LINK_RE = /https?:\/\/\S+/gi;
 
+/** A structured recipe that can stand alone: at least two ingredients and some method. */
+function jsonLdComplete(r: Record<string, unknown>): boolean {
+  const ingredients = Array.isArray(r.recipeIngredient) ? r.recipeIngredient.length : 0;
+  const steps = r.recipeInstructions;
+  const hasSteps = Array.isArray(steps) ? steps.length > 0 : typeof steps === "string" && steps.trim().length > 0;
+  return ingredients >= 2 && hasSteps;
+}
+
 /** Reads at most maxBytes of the body, then cancels the stream. */
 export async function readCapped(res: Response, maxBytes: number): Promise<string> {
   if (!res.body) return (await res.text()).slice(0, maxBytes);
@@ -127,13 +135,18 @@ export async function fetchSource(
       const ex = extractFromHtml(html);
       if (ex.jsonLdRecipe) {
         parts.push(`נתוני מתכון מובנים (JSON-LD):\n${JSON.stringify(ex.jsonLdRecipe)}`);
-      } else if (input.platform === "web") {
-        if (ex.title) parts.push(`כותרת: ${ex.title}`);
-        if (ex.description) parts.push(`תיאור: ${ex.description}`);
-        // the article body is the recipe itself; the first <article> on news sites is often a promo block
-        if (ex.articleBody) parts.push(`תוכן הכתבה:\n${ex.articleBody}`);
-        else if (ex.text) parts.push(`תוכן העמוד:\n${ex.text}`);
-      } else if (ex.description) {
+      }
+      // Some sites (ynet, mako) publish a Recipe JSON-LD missing the ingredients or the method; the rest is
+      // only in the article text, so send that too unless the structured recipe is complete on its own.
+      if (input.platform === "web") {
+        if (!ex.jsonLdRecipe || !jsonLdComplete(ex.jsonLdRecipe)) {
+          if (ex.title) parts.push(`כותרת: ${ex.title}`);
+          if (ex.description) parts.push(`תיאור: ${ex.description}`);
+          // the article body is the recipe itself; the first <article> on news sites is often a promo block
+          if (ex.articleBody) parts.push(`תוכן הכתבה:\n${ex.articleBody}`);
+          else if (ex.text) parts.push(`תוכן העמוד:\n${ex.text}`);
+        }
+      } else if (!ex.jsonLdRecipe && ex.description) {
         // social pages: the caption lives in og:description (truncated) and in full in the page data;
         // the body is login-wall noise
         parts.push(`כיתוב הפוסט: ${fullPostText(html, ex.description) ?? ex.description}`);
