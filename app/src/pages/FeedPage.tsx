@@ -12,6 +12,8 @@ import { SkeletonCard } from "../components/ui/Skeleton";
 import { useDebounced } from "../hooks/useDebounced";
 import { useFavorites } from "../hooks/useFavorites";
 import { useIsDesktop } from "../hooks/useIsDesktop";
+import { useRatings } from "../hooks/useRatings";
+import { RatingFilter } from "../components/RatingFilter";
 import { adminAction, listRecipes, PAGE_SIZE } from "../lib/recipes";
 import type { Recipe } from "../lib/types";
 
@@ -21,8 +23,11 @@ export default function FeedPage({ favoritesOnly = false }: { favoritesOnly?: bo
   const [params, setParams] = useSearchParams();
   const q = params.get("q") ?? "";
   const category = params.get("cat");
+  const starsParam = Number(params.get("stars"));
+  const minRating = starsParam >= 1 && starsParam <= 5 ? starsParam : null;
   const debouncedQ = useDebounced(q, 300);
   const favorites = useFavorites();
+  const ratings = useRatings();
   const isDesktop = useIsDesktop();
   const isAdmin = useAuth().member?.role === "admin";
   // Admin edit mode (long-press a card): cards jiggle with a delete ✕, like iPhone home-screen editing.
@@ -38,8 +43,8 @@ export default function FeedPage({ favoritesOnly = false }: { favoritesOnly?: bo
   };
 
   const query = useInfiniteQuery({
-    queryKey: ["recipes", debouncedQ, category, favoritesOnly],
-    queryFn: ({ pageParam }) => listRecipes({ q: debouncedQ, category, favoritesOnly, page: pageParam }),
+    queryKey: ["recipes", debouncedQ, category, favoritesOnly, minRating],
+    queryFn: ({ pageParam }) => listRecipes({ q: debouncedQ, category, favoritesOnly, page: pageParam, minRating }),
     initialPageParam: 0,
     getNextPageParam: (last, all) => (last.length === PAGE_SIZE ? all.length : undefined),
     placeholderData: keepPreviousData,
@@ -106,6 +111,7 @@ export default function FeedPage({ favoritesOnly = false }: { favoritesOnly?: bo
       </div>
       {/* on desktop the categories live in the sidebar (as ?cat= links) */}
       {!isDesktop && <CategoryChips value={category} onChange={(v) => update("cat", v)} />}
+      {!isDesktop && <RatingFilter value={minRating} onChange={(v) => update("stars", v ? String(v) : null)} />}
       {query.isPending && (
         <div role="status" aria-label="טוען" className={GRID}>
           {Array.from({ length: 6 }, (_, i) => <SkeletonCard key={i} />)}
@@ -131,7 +137,7 @@ export default function FeedPage({ favoritesOnly = false }: { favoritesOnly?: bo
       {/* tapping empty space between the cards also leaves edit mode */}
       <div className={GRID} onClick={editing ? (e) => { if (e.target === e.currentTarget) exitEdit(); } : undefined}>
         {recipes.map((r, i) => (
-          <RecipeCard key={r.id} recipe={r} index={i} isFavorite={favorites.ids.has(r.id)} onToggleFavorite={() => favorites.toggle(r.id)}
+          <RecipeCard key={r.id} recipe={r} index={i} isFavorite={favorites.ids.has(r.id)} myRating={ratings.get(r.id)} onToggleFavorite={() => favorites.toggle(r.id)}
             editing={editing}
             onLongPress={isAdmin ? enterEdit : undefined}
             onExitEdit={exitEdit}

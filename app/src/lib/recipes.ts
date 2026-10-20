@@ -10,7 +10,9 @@ export type AdminActionBody =
 
 // ---------- data access ----------
 
-export async function listRecipes(o: { q: string; category: string | null; favoritesOnly: boolean; page: number }): Promise<Recipe[]> {
+export async function listRecipes(o: {
+  q: string; category: string | null; favoritesOnly: boolean; page: number; minRating?: number | null;
+}): Promise<Recipe[]> {
   // GET so the SW can cache feed pages for offline use (search_recipes is `stable`, PostgREST allows GET).
   // With GET, args go into the query string and null would become the text "null": omit empty ones instead
   // (the function defaults q and cat to null).
@@ -19,6 +21,7 @@ export async function listRecipes(o: { q: string; category: string | null; favor
     ...(q ? { q } : {}),
     ...(o.category ? { cat: o.category } : {}),
     favorites_only: o.favoritesOnly,
+    ...(o.minRating ? { min_rating: o.minRating } : {}),
     page_size: PAGE_SIZE,
     page_offset: o.page * PAGE_SIZE,
   }, { get: true });
@@ -50,6 +53,24 @@ export async function setFavorite(memberId: string, recipeId: string, on: boolea
     ? await supabase.from("favorites").insert({ member_id: memberId, recipe_id: recipeId })
     : await supabase.from("favorites").delete().eq("member_id", memberId).eq("recipe_id", recipeId);
   if (error && error.code !== "23505") throw error;
+}
+
+/** My own star ratings (RLS returns only the caller's rows): recipe id → 1-5. */
+export async function listMyRatings(): Promise<Map<string, number>> {
+  const { data, error } = await supabase.from("ratings").select("recipe_id, stars");
+  if (error) throw error;
+  return new Map((data ?? []).map((r) => [r.recipe_id as string, r.stars as number]));
+}
+
+/** Rate a recipe 1-5 for myself, or clear my rating with null. */
+export async function setRating(memberId: string, recipeId: string, stars: number | null): Promise<void> {
+  const { error } = stars === null
+    ? await supabase.from("ratings").delete().eq("member_id", memberId).eq("recipe_id", recipeId)
+    : await supabase.from("ratings").upsert(
+      { member_id: memberId, recipe_id: recipeId, stars, updated_at: new Date().toISOString() },
+      { onConflict: "member_id,recipe_id" },
+    );
+  if (error) throw error;
 }
 
 export async function ingestLink(text: string): Promise<IngestResult[]> {

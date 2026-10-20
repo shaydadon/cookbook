@@ -9,9 +9,10 @@ import { CloseIcon } from "./ui/icons";
  * Feed card. Admins can long-press to enter edit mode (`onLongPress`); in edit mode (`editing`) the card
  * jiggles like an iPhone icon, shows a delete ✕ (`onDelete`) and no longer opens the recipe.
  */
-export function RecipeCard({ recipe, isFavorite, onToggleFavorite, editing = false, onLongPress, onDelete, onExitEdit, index = 0 }: {
+export function RecipeCard({ recipe, isFavorite, onToggleFavorite, editing = false, onLongPress, onDelete, onExitEdit, index = 0, myRating = null }: {
   recipe: Recipe; isFavorite: boolean; onToggleFavorite(): void;
   editing?: boolean; onLongPress?: () => void; onDelete?: () => void; onExitEdit?: () => void; index?: number;
+  myRating?: number | null;
 }) {
   const img = imageUrl(recipe.image_path);
   const total = totalMinutes(recipe);
@@ -36,7 +37,12 @@ export function RecipeCard({ recipe, isFavorite, onToggleFavorite, editing = fal
         </div>
         <div className="px-2.5 pb-2.5 pt-2">
           <h2 className="line-clamp-2 text-[13px] font-semibold leading-snug">{recipe.title}</h2>
-          {caption && <p className="mt-0.5 text-[11.5px] text-muted">{caption}</p>}
+          {(caption || myRating) && (
+            <p className="mt-0.5 flex items-center gap-1.5 text-[11.5px] text-muted">
+              {myRating && <span aria-label={`הדירוג שלך: ${myRating} כוכבים`} className="font-semibold text-accent">★{myRating}</span>}
+              {caption}
+            </p>
+          )}
         </div>
       </Link>
       {editing && onDelete

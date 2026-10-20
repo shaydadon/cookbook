@@ -2,9 +2,11 @@ import { useQuery } from "@tanstack/react-query";
 import { type ReactNode, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router";
 import { FavoriteButton } from "../components/FavoriteButton";
+import { StarRating } from "../components/StarRating";
 import { IconButton } from "../components/ui/IconButton";
 import { CheckIcon, ChevronBackIcon, ClockIcon, UsersIcon } from "../components/ui/icons";
 import { useFavorites } from "../hooks/useFavorites";
+import { useRatings } from "../hooks/useRatings";
 import {
   formatAttribution, formatIngredient, formatMinutes, getRecipe, getShares, groupIngredients, imageUrl, totalMinutes,
 } from "../lib/recipes";
@@ -15,6 +17,7 @@ export default function RecipePage() {
   const recipe = useQuery({ queryKey: ["recipe", id], queryFn: () => getRecipe(id) });
   const shares = useQuery({ queryKey: ["shares", id], queryFn: () => getShares(id) });
   const favorites = useFavorites();
+  const ratings = useRatings();
   const [checked, setChecked] = useState<Set<number>>(new Set());
 
   if (recipe.isPending) return <div role="status" aria-label="טוען" className="h-[40vh] animate-pulse bg-fill" />;
@@ -72,6 +75,9 @@ export default function RecipePage() {
         <a href={r.source_url} target="_blank" rel="noopener noreferrer" className="mt-1 block text-[12.5px] text-muted underline-offset-2 hover:underline">
           {formatAttribution(r, shares.data?.[0] ?? null)}
         </a>
+        <div className="mt-2 -ms-2">
+          <StarRating value={ratings.get(r.id)} onChange={(stars) => ratings.rate(r.id, stars)} />
+        </div>
         {r.description && <p className="mt-3 text-[15px] leading-relaxed text-muted">{r.description}</p>}
 
         {stats.length > 0 && (

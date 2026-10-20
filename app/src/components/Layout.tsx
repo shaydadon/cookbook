@@ -108,6 +108,7 @@ function Sidebar({ isAdmin, initial, name, onOpenSettings }: {
 }) {
   const { pathname, search } = useLocation();
   const cat = pathname === "/" ? new URLSearchParams(search).get("cat") : null;
+  const stars = pathname === "/" ? new URLSearchParams(search).get("stars") : null;
   const item = (to: string, label: string, icon: ReactNode, active: boolean) => (
     <Link to={to} aria-current={active ? "page" : undefined} className={sideItem(active)}>{icon}{label}</Link>
   );
@@ -117,7 +118,7 @@ function Sidebar({ isAdmin, initial, name, onOpenSettings }: {
       <p className="mb-4 flex items-center gap-2 px-3 text-[17px] font-extrabold">
         <img src="/pwa-64x64.png" alt="" className="size-7 rounded-lg" />המתכונים שלנו
       </p>
-      {item("/", "בית", <HomeIcon className="size-5" />, pathname === "/" && !cat)}
+      {item("/", "בית", <HomeIcon className="size-5" />, pathname === "/" && !cat && !stars)}
       {item("/favorites", "מועדפים", <HeartIcon className="size-5" />, pathname === "/favorites")}
       {item("/add", "הוספה", <PlusCircleIcon className="size-5" />, pathname === "/add")}
       {isAdmin && item("/admin", "ניהול", <ShieldIcon className="size-5" />, pathname === "/admin")}
@@ -125,6 +126,11 @@ function Sidebar({ isAdmin, initial, name, onOpenSettings }: {
       {CATEGORIES.map((c) => (
         <Link key={c} to={`/?cat=${encodeURIComponent(c)}`} aria-current={cat === c ? "page" : undefined}
           className={`${sideItem(cat === c)} min-h-9 text-[14px]`}>{c}</Link>
+      ))}
+      <p className="mb-1 mt-6 px-3 text-[12px] font-semibold text-muted">הדירוג שלי</p>
+      {[5, 4, 3].map((n) => (
+        <Link key={n} to={`/?stars=${n}`} aria-current={stars === String(n) ? "page" : undefined}
+          className={`${sideItem(stars === String(n))} min-h-9 text-[14px]`}>{n === 5 ? "★5" : `★${n} ומעלה`}</Link>
       ))}
       <button type="button" aria-label="הגדרות" onClick={onOpenSettings}
         className="pressable mt-auto flex min-h-11 items-center gap-3 rounded-[10px] px-3 pt-2 text-start hover:bg-fill">
