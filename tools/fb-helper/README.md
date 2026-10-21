@@ -10,6 +10,7 @@ and gives up on a recipe after 2 tries 6 hours apart. Those stay in "needs revie
 
 ## Setup (once)
 
+0. Google Chrome installed (the helper drives it with its own separate profile; Playwright's unsigned Chromium is blocked by Windows app control).
 1. `tools/fb-helper/.env` with `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` (gitignored).
 2. `npm run fb-helper:login`: log in to the spare account in the window that opens, then close it.
 3. Schedule it: `powershell -File tools/fb-helper/install-task.ps1` (every 15 minutes, hidden).

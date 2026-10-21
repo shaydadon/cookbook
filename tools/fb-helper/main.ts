@@ -26,7 +26,7 @@ const log = (msg: string) => {
 };
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 const launch = (headless: boolean) =>
-  chromium.launchPersistentContext(PROFILE, { headless, channel: "chromium", locale: "he-IL", viewport: { width: 1280, height: 900 } });
+  chromium.launchPersistentContext(PROFILE, { headless, channel: "chrome", locale: "he-IL", viewport: { width: 1280, height: 900 } });
 
 if (Deno.args.includes("--login")) {
   const ctx = await launch(false);
