@@ -25,9 +25,13 @@ export async function readPost(ctx: BrowserContext, url: string): Promise<{ text
     await page.waitForTimeout(3500);
     await page.evaluate(expand);
     await page.waitForTimeout(800);
-    // Only the post and its comments: the right-hand column holds ads and suggested pages.
+    // Only the post and its comments: the right-hand column holds ads and suggested pages. Reels open their
+    // comments as [role=article] blocks outside [role=main].
     return await page.evaluate(`(() => {
-      const roots = [...document.querySelectorAll('[role=dialog], [role=main]')];
+      const main = [...document.querySelectorAll('[role=dialog], [role=main]')];
+      const loose = [...document.querySelectorAll('[role=article]')]
+        .filter((a) => !a.parentElement.closest('[role=dialog], [role=main], [role=article]'));
+      const roots = [...main, ...loose];
       const scope = roots.length ? roots : [document.body];
       const texts = [], hrefs = [];
       for (const r of scope) {
