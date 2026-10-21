@@ -18,6 +18,7 @@ and gives up on a recipe after 2 tries 6 hours apart. Those stay in "needs revie
 ## Use
 
 - `npm run fb-helper`: one pass (what the scheduled task runs).
+- `npm run fb-helper -- --all`: one sweep over every failed Facebook recipe (pause the scheduled task first).
 - `npm run fb-helper -- --check <facebook url>`: try one post, no database writes.
 - Log, state and browser profile: `%LOCALAPPDATA%\cookbook-fb-helper\`.
 - If the log says "not logged in", run the login step again.

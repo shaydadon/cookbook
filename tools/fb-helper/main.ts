@@ -60,15 +60,18 @@ const db = createClient(env.SUPABASE_URL, env.SUPABASE_SERVICE_ROLE_KEY, { auth:
 let state: Record<string, TryState> = {};
 try { state = JSON.parse(Deno.readTextFileSync(STATE)); } catch { /* first run */ }
 
-// Facebook links the server already failed on at least once and is not working on right now.
+// Facebook links the server already failed on: needs_review (even with a short caption saved, which proved
+// insufficient), or queued for an automatic refetch.
 const { data: rows, error } = await db.from("recipes")
   .select("id, source_url, status")
-  .eq("source_platform", "facebook").is("raw_content", null)
-  .or("status.eq.needs_review,and(status.eq.queued,fetch_retries.gte.1)")
+  .eq("source_platform", "facebook")
+  .or("status.eq.needs_review,and(status.eq.queued,fetch_retries.gte.1,raw_content.is.null)")
   .order("created_at", { ascending: false });
 if (error) { log(`query failed: ${error.message}`); Deno.exit(1); }
 const now = new Date();
-const todo = rows!.filter((r) => shouldTry(state[r.id], now)).slice(0, PER_RUN);
+// --all: one manual sweep over every failed Facebook recipe, ignoring the per-run and per-recipe limits.
+const todo = Deno.args.includes("--all") ? rows! : rows!.filter((r) => shouldTry(state[r.id], now)).slice(0, PER_RUN);
+log(`${todo.length} of ${rows!.length} failed Facebook recipes to try`);
 if (!todo.length) Deno.exit(0);
 
 const ctx = await launch(true);
@@ -88,8 +91,9 @@ try {
       const { data: updated, error: upErr } = await db.from("recipes").update({
         raw_content: raw, title: null, status: "rewriting", fetch_retries: 3, attempts: 0, claims: 0, error: null,
         next_attempt_at: new Date().toISOString(), locked_until: null,
-      }).eq("id", r.id).is("raw_content", null).in("status", ["queued", "needs_review"])
-        .or(`locked_until.is.null,locked_until.lt.${new Date().toISOString()}`).select("id");
+      }).eq("id", r.id) // still failed, and not claimed by the server's worker meanwhile
+        .or(`status.eq.needs_review,and(status.eq.queued,raw_content.is.null,` +
+          `or(locked_until.is.null,locked_until.lt.${new Date().toISOString()}))`).select("id");
       if (upErr) log(`update failed ${r.id}: ${upErr.message}`);
       else log(`${updated?.length ? "recovered" : "skipped (busy)"} ${r.id} ${raw.length} chars ${r.source_url}`);
     } catch (e) {
