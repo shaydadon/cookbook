@@ -6,11 +6,12 @@
 //
 // Needs tools/fb-helper/.env with SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY (never committed).
 import { load } from "jsr:@std/dotenv@0.225";
-import { chromium } from "npm:playwright@1.64.1";
+import { type BrowserContext, chromium } from "npm:playwright@1.64.1";
 import { createClient } from "npm:@supabase/supabase-js@2.117.3";
 import { fetchSource } from "../../supabase/functions/_shared/fetch-source.ts";
-import { recover, shouldTry, type TryState } from "./core.ts";
+import { recover, type RecoverDeps, shouldTry, type TryState } from "./core.ts";
 import { isLoggedIn, NotLoggedInError, readPost } from "./page.ts";
+import { readVideo } from "./video.ts";
 
 const HOME = `${Deno.env.get("LOCALAPPDATA") ?? Deno.env.get("HOME")}/cookbook-fb-helper`;
 const PROFILE = `${HOME}/profile`;
@@ -37,24 +38,30 @@ if (Deno.args.includes("--login")) {
   Deno.exit(0);
 }
 
+const env = { ...await load({ envPath: new URL("./.env", import.meta.url).pathname.replace(/^\/(\w:)/, "$1") }), ...Deno.env.toObject() };
+const recoverDeps = (ctx: BrowserContext): RecoverDeps => ({
+  readPost: (url) => readPost(ctx, url),
+  fetchPage: (url) => fetchSource({ url, platform: "web", messageText: null }),
+  // Videos are read only when both AI keys are configured.
+  readVideo: env.ANTHROPIC_API_KEY && env.OPENAI_API_KEY
+    ? (url) => readVideo(ctx, url, { anthropic: env.ANTHROPIC_API_KEY, openai: env.OPENAI_API_KEY })
+    : undefined,
+});
+
 // Try one post without touching the database: npm run fb-helper -- --check <facebook url>
 const check = Deno.args[Deno.args.indexOf("--check") + 1];
 if (Deno.args.includes("--check") && check) {
   const ctx = await launch(true);
   try {
     if (!await isLoggedIn(ctx)) throw new NotLoggedInError();
-    const raw = await recover(check, {
-      readPost: (url) => readPost(ctx, url),
-      fetchPage: (url) => fetchSource({ url, platform: "web", messageText: null }),
-    });
-    console.log(raw ? `RECIPE (${raw.length} chars):\n${raw.slice(0, 600)}` : "no recipe found");
+    const raw = await recover(check, recoverDeps(ctx));
+    console.log(raw ? `RECIPE (${raw.length} chars):\n${raw.slice(0, 1500)}` : "no recipe found");
   } finally {
     await ctx.close();
   }
   Deno.exit(0);
 }
 
-const env = { ...await load({ envPath: new URL("./.env", import.meta.url).pathname.replace(/^\/(\w:)/, "$1") }), ...Deno.env.toObject() };
 const db = createClient(env.SUPABASE_URL, env.SUPABASE_SERVICE_ROLE_KEY, { auth: { persistSession: false } });
 
 let state: Record<string, TryState> = {};
@@ -76,10 +83,7 @@ if (!todo.length) Deno.exit(0);
 
 const ctx = await launch(true);
 if (!await isLoggedIn(ctx)) { log(new NotLoggedInError().message); await ctx.close(); Deno.exit(1); }
-const deps = {
-  readPost: (url: string) => readPost(ctx, url),
-  fetchPage: (url: string) => fetchSource({ url, platform: "web", messageText: null }),
-};
+const deps = recoverDeps(ctx);
 try {
   for (const [i, r] of todo.entries()) {
     if (i > 0) await sleep(20_000 + Math.random() * 20_000); // a person's pace, not a crawler's

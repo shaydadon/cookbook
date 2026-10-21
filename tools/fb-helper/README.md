@@ -3,6 +3,8 @@
 Facebook hides most posts from servers: a login wall, or the recipe sits in the first comment as a link.
 This helper runs on a PC, in a real Chromium browser logged into a **spare** Facebook account, and does what a
 person would do: opens the post, expands "See more", opens the comments, and follows links to recipe sites.
+When the recipe is only in the video, it reads the subtitles from frames (Claude) and transcribes the speech
+(OpenAI); both keys go in the same .env as `ANTHROPIC_API_KEY` and `OPENAI_API_KEY`.
 Whatever it finds goes to the pipeline like an admin paste (`raw_content`, status `rewriting`).
 
 It only touches Facebook recipes the server already failed on at least once, at most 5 per run, 20–40 s apart,

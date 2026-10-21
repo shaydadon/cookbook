@@ -59,10 +59,14 @@ export interface RecoverDeps {
   readPost(url: string): Promise<{ texts: string[]; hrefs: string[] }>;
   /** fetchSource output for a linked page, or null. */
   fetchPage(url: string): Promise<string | null>;
+  /** What the post's video shows and says: subtitles read from frames, and the speech transcript. */
+  readVideo?(url: string): Promise<VideoContent>;
 }
+export interface VideoContent { onScreen: string; speech: string }
 const MAX_LINKS = 4;
 
-/** Recipe content for a Facebook post: its own text when that is a recipe, plus linked pages that are recipes. */
+/** Recipe content for a Facebook post: its own text when that is a recipe, plus linked pages that are recipes.
+ *  When neither has one, the recipe is often only in the video: its subtitles and speech are used instead. */
 export async function recover(url: string, deps: RecoverDeps): Promise<string | null> {
   const post = await deps.readPost(url);
   const pages: { url: string; content: string }[] = [];
@@ -70,7 +74,22 @@ export async function recover(url: string, deps: RecoverDeps): Promise<string | 
     const content = await deps.fetchPage(link).catch(() => null);
     if (content && isRecipePage(content)) pages.push({ url: link, content });
   }
-  return buildRawContent(pickPostText(post.texts), pages);
+  const written = buildRawContent(pickPostText(post.texts), pages);
+  if (written || !deps.readVideo) return written;
+  const video = videoText(await deps.readVideo(url).catch(() => ({ onScreen: "", speech: "" })));
+  return video ? buildRawContent([caption(post.texts), video].filter(Boolean).join("\n\n"), []) : null;
+}
+
+/** The post's caption: the first real text block, since the caption comes before the comments on the page. */
+function caption(texts: string[]): string | null {
+  return texts.map((x) => x.trim()).find((x) => x.length >= 20 && !NOISE.test(x)) ?? null;
+}
+
+export function videoText(v: VideoContent): string | null {
+  const parts: string[] = [];
+  if (v.onScreen.trim() && v.onScreen.trim() !== "NONE") parts.push(`טקסט שמופיע בסרטון:\n${v.onScreen.trim()}`);
+  if (v.speech.trim()) parts.push(`תמלול הדיבור בסרטון:\n${v.speech.trim()}`);
+  return parts.length ? parts.join("\n\n") : null;
 }
 
 export interface TryState { tries: number; last: string }

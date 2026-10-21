@@ -1,5 +1,5 @@
 import { assertEquals } from "jsr:@std/assert@1";
-import { buildRawContent, externalLinks, isRecipePage, pickPostText, recipeScore, recover, type RecoverDeps, shouldTry } from "./core.ts";
+import { buildRawContent, externalLinks, isRecipePage, pickPostText, recipeScore, recover, type RecoverDeps, shouldTry, videoText } from "./core.ts";
 
 const RECIPE = "סלט חומוסים\nמרכיבים:\nקופסת חומוסים\nכפית פפריקה\nחצי כוס רימון\nכף שמן זית\nאופן הכנה: מערבבים";
 
@@ -83,4 +83,41 @@ Deno.test("shouldTry allows 2 tries per recipe, at least 6 hours apart", () => {
   assertEquals(shouldTry({ tries: 1, last: "2026-10-21T09:00:00Z" }, now), false);
   assertEquals(shouldTry({ tries: 1, last: "2026-10-21T05:00:00Z" }, now), true);
   assertEquals(shouldTry({ tries: 2, last: "2026-10-01T00:00:00Z" }, now), false);
+});
+
+
+
+Deno.test("videoText labels on-screen text and speech, dropping NONE and empty parts", () => {
+  assertEquals(videoText({ onScreen: "מוסיף חופן צנובר", speech: "מוסיף שמן זית" }),
+    "טקסט שמופיע בסרטון:\nמוסיף חופן צנובר\n\nתמלול הדיבור בסרטון:\nמוסיף שמן זית");
+  assertEquals(videoText({ onScreen: "NONE", speech: "add two cups of pineapple juice" }),
+    "תמלול הדיבור בסרטון:\nadd two cups of pineapple juice");
+  assertEquals(videoText({ onScreen: "NONE", speech: "  " }), null);
+});
+
+const VIDEO = { onScreen: "NONE", speech: "מוסיפים כוס וחצי מיץ אננס ושתי כפות סויה, מבשלים רבע שעה" };
+
+Deno.test("recover falls back to the video when neither the post nor its links hold a recipe", async () => {
+  const d: RecoverDeps = { ...deps({ texts: ["אל תטגנו את העוף, רתחו אותו במיץ אננס! התוצאה מדהימה"], hrefs: [] }, {}), readVideo: () => Promise.resolve(VIDEO) };
+  assertEquals(await recover("https://fb/v", d), `אל תטגנו את העוף, רתחו אותו במיץ אננס! התוצאה מדהימה\n\n${videoText(VIDEO)}`);
+});
+
+Deno.test("recover does not open the video when the post already has the recipe", async () => {
+  let opened = false;
+  const d: RecoverDeps = { ...deps({ texts: [RECIPE], hrefs: [] }, {}), readVideo: () => { opened = true; return Promise.resolve(VIDEO); } };
+  assertEquals(await recover("https://fb/v", d), RECIPE);
+  assertEquals(opened, false);
+});
+
+Deno.test("recover returns null when the video has nothing either, and survives a failing video read", async () => {
+  const empty: RecoverDeps = { ...deps({ texts: [], hrefs: [] }, {}), readVideo: () => Promise.resolve({ onScreen: "NONE", speech: "" }) };
+  assertEquals(await recover("https://fb/v", empty), null);
+  const failing: RecoverDeps = { ...deps({ texts: [], hrefs: [] }, {}), readVideo: () => Promise.reject(new Error("no video")) };
+  assertEquals(await recover("https://fb/v", failing), null);
+});
+
+Deno.test("recover keeps the post caption (first on the page), not a longer comment, with the video text", async () => {
+  const texts = ["אל תטגנו את העוף, רתחו אותו במיץ אננס!", "אחרי כל זה הייתי זורק אותם על הגריל והם היו אפילו יותר מדהימים, ממליץ בחום לכולם"];
+  const d: RecoverDeps = { ...deps({ texts, hrefs: [] }, {}), readVideo: () => Promise.resolve(VIDEO) };
+  assertEquals(await recover("https://fb/v", d), `${texts[0]}\n\n${videoText(VIDEO)}`);
 });
