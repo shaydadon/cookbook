@@ -11,7 +11,10 @@
     "functions:serve": "supabase functions serve --env-file supabase/functions/.env",
     "app:dev": "npm --prefix app run dev",
     "app:test": "npm --prefix app test",
-    "app:e2e": "npm --prefix app run e2e"
+    "app:e2e": "npm --prefix app run e2e",
+    "fb-helper": "deno run --node-modules-dir=auto -A tools/fb-helper/main.ts",
+    "fb-helper:login": "deno run --node-modules-dir=auto -A tools/fb-helper/main.ts --login",
+    "test:fb-helper": "deno test --node-modules-dir=auto tools/fb-helper"
   },
   "devDependencies": {
     "deno": "^2.9.6",
