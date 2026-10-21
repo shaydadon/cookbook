@@ -64,6 +64,7 @@ export interface RecoverDeps {
 }
 export interface VideoContent { onScreen: string; speech: string }
 const MAX_LINKS = 4;
+const MIN_VIDEO_TEXT = 120;
 
 /** Recipe content for a Facebook post: its own text when that is a recipe, plus linked pages that are recipes.
  *  When neither has one, the recipe is often only in the video: its subtitles and speech are used instead. */
@@ -77,7 +78,10 @@ export async function recover(url: string, deps: RecoverDeps): Promise<string | 
   const written = buildRawContent(pickPostText(post.texts), pages);
   if (written || !deps.readVideo) return written;
   const video = videoText(await deps.readVideo(url).catch(() => ({ onScreen: "", speech: "" })));
-  return video ? buildRawContent([caption(post.texts), video].filter(Boolean).join("\n\n"), []) : null;
+  // a word or two of subtitles is not a recipe; don't send it to the pipeline
+  return video && video.length >= MIN_VIDEO_TEXT
+    ? buildRawContent([caption(post.texts), video].filter(Boolean).join("\n\n"), [])
+    : null;
 }
 
 /** The post's caption: the first real text block, since the caption comes before the comments on the page. */

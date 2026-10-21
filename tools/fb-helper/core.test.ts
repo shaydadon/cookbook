@@ -95,7 +95,7 @@ Deno.test("videoText labels on-screen text and speech, dropping NONE and empty p
   assertEquals(videoText({ onScreen: "NONE", speech: "  " }), null);
 });
 
-const VIDEO = { onScreen: "NONE", speech: "מוסיפים כוס וחצי מיץ אננס ושתי כפות סויה, מבשלים רבע שעה" };
+const VIDEO = { onScreen: "NONE", speech: "מוסיפים לסיר כוס וחצי מיץ אננס וקילו כנפיים, מבשלים עד שהמיץ מתאדה, מוסיפים שלוש שיני שום, כפית פפריקה, כפית מלח וחמש כפות סויה, מכסים ומבשלים רבע שעה" };
 
 Deno.test("recover falls back to the video when neither the post nor its links hold a recipe", async () => {
   const d: RecoverDeps = { ...deps({ texts: ["אל תטגנו את העוף, רתחו אותו במיץ אננס! התוצאה מדהימה"], hrefs: [] }, {}), readVideo: () => Promise.resolve(VIDEO) };
@@ -120,4 +120,9 @@ Deno.test("recover keeps the post caption (first on the page), not a longer comm
   const texts = ["אל תטגנו את העוף, רתחו אותו במיץ אננס!", "אחרי כל זה הייתי זורק אותם על הגריל והם היו אפילו יותר מדהימים, ממליץ בחום לכולם"];
   const d: RecoverDeps = { ...deps({ texts, hrefs: [] }, {}), readVideo: () => Promise.resolve(VIDEO) };
   assertEquals(await recover("https://fb/v", d), `${texts[0]}\n\n${videoText(VIDEO)}`);
+});
+
+Deno.test("recover ignores video results too short to hold a recipe", async () => {
+  const d: RecoverDeps = { ...deps({ texts: ["Privacy · Terms · Advertising · Cookies"], hrefs: [] }, {}), readVideo: () => Promise.resolve({ onScreen: "וואו", speech: "" }) };
+  assertEquals(await recover("https://fb/v", d), null);
 });
